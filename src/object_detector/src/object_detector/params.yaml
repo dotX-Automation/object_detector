@@ -1,0 +1,142 @@
+header_include_path: object_detector/object_detector.hpp
+namespace: ObjectDetector
+node_class_name: ObjectDetectorNode
+
+params:
+  autostart:
+    type: bool
+    default_value: false
+    description: "Whether to start detection immediately."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: autostart_
+
+  best_effort_sub_qos:
+    type: bool
+    default_value: false
+    description: "Whether to subscribe to the input topics with a best effort QoS."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: best_effort_sub_qos_
+
+  model_shape:
+    type: integer_array
+    default_value: [0]
+    min_value: 0
+    max_value: 10000
+    step: 1
+    description: "Model input dimensions."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: model_shape_
+
+  image_sub_depth:
+    type: integer
+    default_value: 1
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "Image subscriber queue depth."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: image_sub_depth_
+
+  input_topic:
+    type: string
+    default_value: /camera/image_color
+    description: "Camera topic name to subscribe to."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: input_topic_
+
+  model_NMS_threshold:
+    type: double
+    default_value: 0.1
+    min_value: 0.0
+    max_value: 1.0
+    step: 0.0
+    description: "YOLO NMS threshold."
+    constraints: "Can be changed."
+    read_only: false
+    var_name: model_NMS_threshold_
+
+  model_score_threshold:
+    type: double
+    default_value: 0.1
+    min_value: 0.0
+    max_value: 1.0
+    step: 0.0
+    description: "YOLO score threshold."
+    constraints: "Can be changed."
+    read_only: false
+    var_name: model_score_threshold_
+
+  objects_ids:
+    type: integer_array
+    default_value: [0]
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "COCO classes to be found."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: objects_ids_
+
+  onnx_path:
+    type: string
+    default_value: /
+    description: "Path to ONNX neural network."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: onnx_path_
+
+  output_topic:
+    type: string
+    default_value: /targets
+    description: "Topic name to publish markers data on."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: output_topic_
+
+  stream_topic:
+    type: string
+    default_value: /targets_stream
+    description: "Topic name to publish target detection images."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: stream_topic_
+
+  transport:
+    type: string
+    default_value: raw
+    description: "Transport type to use with image_transport."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: transport_
+
+  use_gpu:
+    type: bool
+    default_value: false
+    description: "Whether to use GPU to run YOLO."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: use_gpu_
+
+  visual_data_topic:
+    type: string
+    default_value: /visual_targets
+    description: "Topic name to publish markers visual data on."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: visual_data_topic_
+
+  worker_cpu:
+    type: integer
+    default_value: -1
+    min_value: -1
+    max_value: 255
+    step: 1
+    description: "CPU on which the worker will be pinned."
+    constraints: "Cannot be changed, -1 disables this policy."
+    read_only: true
+    var_name: worker_cpu_
