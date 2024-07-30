@@ -1,9 +1,10 @@
 /object_detector:
   ros__parameters:
+    always_pub_stream: true
     autostart: true
     best_effort_sub_qos: true
     image_sub_depth: 1
-    input_topic: /usb_camera/zed_usb_driver/camera/image_rect_color
+    input_topic: /usb_camera/usb_camera_driver/camera/image_rect_color
     model_NMS_threshold: 0.50
     model_score_threshold: 0.5
     model_shape: [640, 480]

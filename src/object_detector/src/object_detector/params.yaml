@@ -3,6 +3,14 @@ namespace: ObjectDetector
 node_class_name: ObjectDetectorNode
 
 params:
+  always_pub_stream:
+    type: bool
+    default_value: false
+    description: "Whether to always publish images even without detections."
+    constraints: "Can be changed."
+    read_only: false
+    var_name: always_pub_stream_
+
   autostart:
     type: bool
     default_value: false

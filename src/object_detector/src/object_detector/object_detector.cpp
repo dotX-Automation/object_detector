@@ -192,7 +192,7 @@ void ObjectDetectorNode::worker_thread_routine()
     int detections = output.size();
 
     // Return if no target is detected
-    if (detections == 0) { continue; }
+    if (detections == 0 && !always_pub_stream_) { continue; }
 
     for (int i = 0; i < detections; i++)
     {

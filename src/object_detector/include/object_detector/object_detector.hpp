@@ -167,6 +167,7 @@ private:
   Inference detector;
 
   /* Node parameters */
+  bool always_pub_stream_ = false;
   bool autostart_ = false;
   bool best_effort_sub_qos_ = false;
   std::vector<int64_t> model_shape_ = {};
