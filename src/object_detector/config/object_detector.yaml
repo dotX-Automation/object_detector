@@ -3,12 +3,16 @@
     always_pub_stream: true
     autostart: true
     best_effort_sub_qos: true
+    classes:
+      - void
+    classes_targets:
+      - person
     image_sub_depth: 1
     model_NMS_threshold: 0.50
     model_score_threshold: 0.5
     model_shape: [640, 480]
-    objects_ids: [9, 10, 11, 24, 25, 58, 64, 66, 73, 77]
     onnx_path: /home/neo/workspace/src/object_detector/weights/yolov8s-seg.onnx
     transport: raw
     use_gpu: true
+    use_coco_classes: true
     worker_cpu: -1

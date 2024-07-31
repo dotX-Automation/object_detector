@@ -92,7 +92,8 @@ public:
             bool run_with_cuda,
             double* score_threshold,
             double* nms_threshold,
-            std::vector<int64_t>& objects_ids_);
+            std::vector<std::string>& classes,
+            std::vector<std::string>& classes_targets);
   std::vector<Detection> run_inference(cv::Mat &input);
 
 private:
@@ -102,11 +103,11 @@ private:
   std::string model_path;
   std::string classes_path;
   bool cuda_enabled;
-  std::vector<int64_t> objects_ids;
+
+  std::vector<std::string> classes;
+  std::vector<std::string> classes_targets;
 
   std::vector<cv::Scalar> colors;
-
-  std::vector<std::string> classes{"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
   cv::Size2f model_shape;
 
@@ -167,13 +168,15 @@ private:
   bool always_pub_stream_ = false;
   bool autostart_ = false;
   bool best_effort_sub_qos_ = false;
+  std::vector<std::string> classes_ = {};
+  std::vector<std::string> classes_targets_ = {};
   std::vector<int64_t> model_shape_ = {};
   int64_t image_sub_depth_ = 0;
   double model_score_threshold_ = 0.0;
   double model_NMS_threshold_ = 0.0;
-  std::vector<int64_t> objects_ids_ = {};
   std::string onnx_path_ = "";
   std::string transport_ = "";
+  bool use_coco_classes_ = false;
   bool use_gpu_ = false;
   int64_t worker_cpu_ = 0;
 

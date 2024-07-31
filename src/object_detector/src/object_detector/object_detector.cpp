@@ -78,12 +78,16 @@ ObjectDetectorNode::~ObjectDetectorNode()
  */
 void ObjectDetectorNode::init_inference()
 {
+  if (use_coco_classes_)
+    classes_ = {"person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant", "bed", "dining table", "toilet", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
+
   detector = Inference(onnx_path_,
                        cv::Size(model_shape_[0], model_shape_[1]),
                        use_gpu_,
                        &model_score_threshold_,
                        &model_NMS_threshold_,
-                       objects_ids_);
+                       classes_,
+                       classes_targets_);
 }
 
 /**
@@ -111,7 +115,7 @@ void ObjectDetectorNode::init_subscriptions()
           &worker_cpu_set))
       {
         char err_msg_buf[100] = {};
-        char * err_msg = strerror_r(errno, err_msg_buf, 100);
+        char* err_msg = strerror_r(errno, err_msg_buf, 100);
         throw std::runtime_error(
           "ObjectDetectorNode::init_subscriptions: Failed to configure worker thread: " +
           std::string(err_msg));

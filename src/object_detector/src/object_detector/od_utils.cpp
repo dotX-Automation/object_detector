@@ -64,21 +64,24 @@ Image::SharedPtr ObjectDetectorNode::frame_to_msg(cv::Mat& frame)
  * @param run_with_cuda boolean to run with CUDA.
  * @param score_threshold pointer to score threshold value.
  * @param nms_threshold pointer to NMS threshold value.
- * @param objects_ids vector of objects IDs to be found.
+ * @param classes vector of classes names.
+ * @param classes_targets vector of classes names to be found.
  */
 Inference::Inference(std::string& onnx_model_path,
                      cv::Size model_input_shape,
                      bool run_with_cuda,
                      double* score_threshold,
                      double* nms_threshold,
-                     std::vector<int64_t>& objects_ids)
+                     std::vector<std::string>& classes,
+                     std::vector<std::string>& classes_targets)
 {
   this->model_path = onnx_model_path;
   this->model_shape = model_input_shape;
   this->cuda_enabled = run_with_cuda;
   this->score_threshold = score_threshold;
   this->nms_threshold = nms_threshold;
-  this->objects_ids = objects_ids;
+  this->classes = classes;
+  this->classes_targets = classes_targets;
 
   // Create colors vector randomly
   int seed = 1;
@@ -91,8 +94,8 @@ Inference::Inference(std::string& onnx_model_path,
 
   // Print classes names to be found
   std::cout << "Objects to be found: " << std::endl;
-  for (int id : objects_ids)
-    std::cout << "\t- " << classes[id] << std::endl;
+  for (std::string target : classes_targets)
+    std::cout << "\t- " << target << std::endl;
 }
 
 /**
@@ -167,19 +170,27 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
 
   size_t nms_result_size = nms_result.size();
 
-  std::vector<Detection> detections(nms_result_size);
-  for (size_t i = 0; i < nms_result_size; i++)
+  std::vector<Detection> detections;
+  for (size_t i = 0; i < nms_result.size(); i++)
   {
     int idx = nms_result[i];
+    int class_id = class_ids[idx];
+    std::string class_name = classes[class_id];
+
+    if (std::find(classes_targets.begin(), classes_targets.end(), class_name) == classes_targets.end())
+    {
+      nms_result_size--;
+      continue;
+    }
 
     Detection result;
     result.box = boxes[idx];
-    result.class_id = class_ids[idx];
-    result.class_name = classes[result.class_id];
+    result.class_id = class_id;
+    result.class_name = class_name;
     result.color = colors[result.class_id];
     result.confidence = confidences[idx];
 
-    detections[i] = result;
+    detections.push_back(result);
   }
 
   // Segmentation

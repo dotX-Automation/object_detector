@@ -27,6 +27,22 @@ params:
     read_only: true
     var_name: best_effort_sub_qos_
 
+  classes:
+    type: string_array
+    default_value: [""]
+    description: "Classes names."
+    constraints: "Only used when use_coco_dataset is false. Cannot be changed."
+    read_only: true
+    var_name: classes_
+
+  classes_targets:
+    type: string_array
+    default_value: [""]
+    description: "Target classes names."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: classes_targets_
+
   model_shape:
     type: integer_array
     default_value: [0]
@@ -71,17 +87,6 @@ params:
     read_only: false
     var_name: model_score_threshold_
 
-  objects_ids:
-    type: integer_array
-    default_value: [0]
-    min_value: 0
-    max_value: 100
-    step: 1
-    description: "COCO classes to be found."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: objects_ids_
-
   onnx_path:
     type: string
     default_value: /
@@ -97,6 +102,14 @@ params:
     constraints: "Cannot be changed."
     read_only: true
     var_name: transport_
+
+  use_coco_classes:
+    type: bool
+    default_value: false
+    description: "Whether to use COCO classes."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: use_coco_classes_
 
   use_gpu:
     type: bool
