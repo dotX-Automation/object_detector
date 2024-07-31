@@ -122,7 +122,7 @@ void ObjectDetectorNode::init_subscriptions()
     camera_sub_ = std::make_shared<image_transport::CameraSubscriber>(
       image_transport::create_camera_subscription(
         this,
-        input_topic_,
+        "/image_rect_color",
         std::bind(
           &ObjectDetectorNode::camera_callback,
           this,
@@ -140,20 +140,15 @@ void ObjectDetectorNode::init_subscriptions()
  */
 void ObjectDetectorNode::init_publishers()
 {
-  // Targets data
-  target_array_pub_ = this->create_publisher<TargetArray>(
-    output_topic_,
-    dua_qos::Reliable::get_datum_qos());
-
-  // Visual targets data
-  visual_targets_pub_ = this->create_publisher<VisualTargets>(
-    visual_data_topic_,
+  // Detections
+  detections_pub_ = this->create_publisher<Detection2D>(
+    "/detections",
     dua_qos::Reliable::get_datum_qos());
 
   // Targets detection stream
   stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
-    stream_topic_,
+    "/detections_stream",
     dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
 }
 

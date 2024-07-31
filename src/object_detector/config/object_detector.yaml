@@ -4,16 +4,11 @@
     autostart: true
     best_effort_sub_qos: true
     image_sub_depth: 1
-    input_topic: /usb_camera/usb_camera_driver/camera/image_rect_color
     model_NMS_threshold: 0.50
     model_score_threshold: 0.5
     model_shape: [640, 480]
-    # onnx_path: /home/neo/workspace/tools/yolov10/examples/YOLOv8-CPP-Inference/build/yolov8s.onnx
     objects_ids: [9, 10, 11, 24, 25, 58, 64, 66, 73, 77]
     onnx_path: /home/neo/workspace/src/object_detector/weights/yolov8s-seg.onnx
-    output_topic: /targets
-    stream_topic: /targets_stream
     transport: raw
     use_gpu: true
-    visual_data_topic: /targets_visual
     worker_cpu: -1

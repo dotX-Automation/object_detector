@@ -36,6 +36,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(theora_wrappers REQUIRED)
+find_package(vision_msgs REQUIRED)
 
 # Generate parameters source code
 generate_init_parameters(
@@ -72,7 +73,8 @@ ament_target_dependencies(object_detector
   "sensor_msgs"
   "std_msgs"
   "std_srvs"
-  "theora_wrappers")
+  "theora_wrappers"
+  "vision_msgs")
 rclcpp_components_register_nodes(object_detector "ObjectDetector::ObjectDetectorNode")
 
 # Object Detector standalone application

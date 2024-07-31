@@ -38,10 +38,6 @@
 
 #include <dua_node/dua_node.hpp>
 #include <dua_qos_cpp/dua_qos.hpp>
-#include <dua_interfaces/msg/target.hpp>
-#include <dua_interfaces/msg/target_array.hpp>
-#include <dua_interfaces/msg/target_id.hpp>
-#include <dua_interfaces/msg/visual_targets.hpp>
 
 #include <opencv2/core.hpp>
 #include <opencv2/dnn.hpp>
@@ -62,15 +58,17 @@
 
 #include <theora_wrappers/publisher.hpp>
 
+#include <vision_msgs/msg/detection2_d.hpp>
+
 #define UNUSED(arg) (void)(arg)
 #define LINE std::cout << __FUNCTION__ << ", LINE: " << __LINE__ << std::endl;
 
-using namespace dua_interfaces::msg;
 using namespace geometry_msgs::msg;
 using namespace rcl_interfaces::msg;
 using namespace sensor_msgs::msg;
 using namespace std_msgs::msg;
 using namespace std_srvs::srv;
+using namespace vision_msgs::msg;
 
 namespace ObjectDetector
 {
@@ -141,8 +139,7 @@ private:
                        const CameraInfo::ConstSharedPtr & camera_info_msg);
 
   /* Topic publishers */
-  rclcpp::Publisher<TargetArray>::SharedPtr target_array_pub_;
-  rclcpp::Publisher<VisualTargets>::SharedPtr visual_targets_pub_;
+  rclcpp::Publisher<Detection2D>::SharedPtr detections_pub_;
 
   /* Theora stream publishers. */
   std::shared_ptr<TheoraWrappers::Publisher> stream_pub_;
@@ -172,16 +169,12 @@ private:
   bool best_effort_sub_qos_ = false;
   std::vector<int64_t> model_shape_ = {};
   int64_t image_sub_depth_ = 0;
-  std::string input_topic_ = "";
   double model_score_threshold_ = 0.0;
   double model_NMS_threshold_ = 0.0;
   std::vector<int64_t> objects_ids_ = {};
   std::string onnx_path_ = "";
-  std::string output_topic_ = "";
-  std::string stream_topic_ = "";
   std::string transport_ = "";
   bool use_gpu_ = false;
-  std::string visual_data_topic_ = "";
   int64_t worker_cpu_ = 0;
 
   /* Synchronization primitives for internal update operations */

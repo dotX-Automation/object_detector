@@ -61,8 +61,8 @@ void ObjectDetectorNode::enable_callback(
           char err_msg_buf[100] = {};
           char * err_msg = strerror_r(errno, err_msg_buf, 100);
           throw std::runtime_error(
-                  "ObjectDetectorNode::enable_callback: Failed to configure worker thread: " +
-                  std::string(err_msg));
+            "ObjectDetectorNode::enable_callback: Failed to configure worker thread: " +
+            std::string(err_msg));
         }
       }
 
@@ -70,7 +70,7 @@ void ObjectDetectorNode::enable_callback(
       camera_sub_ = std::make_shared<image_transport::CameraSubscriber>(
         image_transport::create_camera_subscription(
           this,
-          input_topic_,
+          "/image_rect_color",
           std::bind(
             &ObjectDetectorNode::camera_callback,
             this,

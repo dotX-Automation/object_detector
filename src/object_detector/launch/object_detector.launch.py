@@ -1,10 +1,6 @@
 """
 Object Detector launch file.
 
-Lorenzo Bianchi <lnz.bnc@gmail.com>
-Roberto Masocco <robmasocco@gmail.com>
-Intelligent Systems Lab <isl.torvergata@gmail.com>
-
 August 7, 2023
 """
 
@@ -49,7 +45,13 @@ def generate_launch_description():
         emulate_tty=True,
         output='both',
         log_cmd=True,
-        parameters=[cf]
+        parameters=[cf],
+        remappings=[
+            ('/camera_info', '/usb_camera/usb_camera_driver/camera/camera_info'),
+            ('/image_rect_color', '/usb_camera/usb_camera_driver/camera/image_rect_color'),
+            ('/detections', '/detections'),
+            ('/detections_stream', '/detections_stream'),
+        ]
     )
 
     ld.add_action(node)

@@ -49,14 +49,6 @@ params:
     read_only: true
     var_name: image_sub_depth_
 
-  input_topic:
-    type: string
-    default_value: /camera/image_color
-    description: "Camera topic name to subscribe to."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: input_topic_
-
   model_NMS_threshold:
     type: double
     default_value: 0.1
@@ -98,22 +90,6 @@ params:
     read_only: true
     var_name: onnx_path_
 
-  output_topic:
-    type: string
-    default_value: /targets
-    description: "Topic name to publish markers data on."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: output_topic_
-
-  stream_topic:
-    type: string
-    default_value: /targets_stream
-    description: "Topic name to publish target detection images."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: stream_topic_
-
   transport:
     type: string
     default_value: raw
@@ -129,14 +105,6 @@ params:
     constraints: "Cannot be changed."
     read_only: true
     var_name: use_gpu_
-
-  visual_data_topic:
-    type: string
-    default_value: /visual_targets
-    description: "Topic name to publish markers visual data on."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: visual_data_topic_
 
   worker_cpu:
     type: integer
