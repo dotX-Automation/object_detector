@@ -115,8 +115,8 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
   // Detection
   cv::Mat boxes_output = outputs[0];
 
-  int boxes_rows = boxes_output.size[2];    // 6300
-  int boxes_dims = boxes_output.size[1];    // 116
+  int boxes_rows = boxes_output.size[2];
+  int boxes_dims = boxes_output.size[1];
 
   boxes_output = boxes_output.reshape(1, boxes_dims).t();
 
@@ -186,7 +186,7 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
   if (outputs.size() > 1)
   {
     cv::Mat masks_output = outputs[1];
-    int mask_proto = masks_output.size[1];   // 32
+    int mask_proto = masks_output.size[1];
     int mask_height = masks_output.size[2];
     int mask_width = masks_output.size[3];
 

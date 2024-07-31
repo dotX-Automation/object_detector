@@ -58,7 +58,7 @@
 
 #include <theora_wrappers/publisher.hpp>
 
-#include <vision_msgs/msg/detection2_d.hpp>
+#include <vision_msgs/msg/detection2_d_array.hpp>
 
 #define UNUSED(arg) (void)(arg)
 #define LINE std::cout << __FUNCTION__ << ", LINE: " << __LINE__ << std::endl;
@@ -139,7 +139,7 @@ private:
                        const CameraInfo::ConstSharedPtr & camera_info_msg);
 
   /* Topic publishers */
-  rclcpp::Publisher<Detection2D>::SharedPtr detections_pub_;
+  rclcpp::Publisher<Detection2DArray>::SharedPtr detections_pub_;
 
   /* Theora stream publishers. */
   std::shared_ptr<TheoraWrappers::Publisher> stream_pub_;

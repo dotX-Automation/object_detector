@@ -113,8 +113,8 @@ void ObjectDetectorNode::init_subscriptions()
         char err_msg_buf[100] = {};
         char * err_msg = strerror_r(errno, err_msg_buf, 100);
         throw std::runtime_error(
-                "ObjectDetectorNode::init_subscriptions: Failed to configure worker thread: " +
-                std::string(err_msg));
+          "ObjectDetectorNode::init_subscriptions: Failed to configure worker thread: " +
+          std::string(err_msg));
       }
     }
 
@@ -141,11 +141,11 @@ void ObjectDetectorNode::init_subscriptions()
 void ObjectDetectorNode::init_publishers()
 {
   // Detections
-  detections_pub_ = this->create_publisher<Detection2D>(
+  detections_pub_ = this->create_publisher<Detection2DArray>(
     "/detections",
     dua_qos::Reliable::get_datum_qos());
 
-  // Targets detection stream
+  // Detection stream
   stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
     "/detections_stream",
@@ -189,32 +189,66 @@ void ObjectDetectorNode::worker_thread_routine()
     // Return if no target is detected
     if (detections == 0 && !always_pub_stream_) { continue; }
 
-    for (int i = 0; i < detections; i++)
+    if (detections != 0)
     {
-      Detection detection = output[i];
+      Detection2DArray detections_msg;
+      detections_msg.set__header(header);
 
-      RCLCPP_INFO(this->get_logger(), "Detected %s at (%d, %d, %d, %d) with confidence %f",
-                  detection.class_name.c_str(), detection.box.x, detection.box.y,
-                  detection.box.width, detection.box.height, detection.confidence);
+      for (int i = 0; i < detections; i++)
+      {
+        Detection detection = output[i];
 
-      cv::Rect box = detection.box;
-      cv::Scalar color = detection.color;
-      cv::Mat mask = detection.mask;
+        RCLCPP_INFO(this->get_logger(), "Detected %s at (%d, %d, %d, %d) with confidence %f",
+                    detection.class_name.c_str(), detection.box.x, detection.box.y,
+                    detection.box.width, detection.box.height, detection.confidence);
 
-      // Detection box
-      cv::rectangle(image, box, color, 2);
+        cv::Rect box = detection.box;
+        cv::Scalar color = detection.color;
+        cv::Mat mask = detection.mask;
 
-      // Segmentation mask
-      if (mask.empty()) { continue; }
+        // Detection box
+        cv::rectangle(image, box, color, 2);
 
-      cv::resize(mask, mask, box.size());
-      mask.convertTo(mask, CV_8UC3, 255);
-      cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
+        // Segmentation mask
+        if (!mask.empty())
+        {
+          cv::resize(mask, mask, box.size());
+          mask.convertTo(mask, CV_8UC3, 255);
+          cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
 
-      cv::Mat roi = image(box);
-      cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
+          cv::Mat roi = image(box);
+          cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
+        }
+
+        // Detection message
+        Detection2D detection_msg;
+
+        // Set hypotesis
+        ObjectHypothesisWithPose result;
+        result.hypothesis.set__class_id(detection.class_name);
+        result.hypothesis.set__score(detection.confidence);
+        result.pose.covariance[0] = -1.0;     // TODO
+        result.pose.pose.position.set__x(0);  // TODO
+        result.pose.pose.position.set__y(0);  // TODO
+        result.pose.pose.position.set__z(0);  // TODO
+
+        detection_msg.results.push_back(result);
+
+        // Set bounding box
+        detection_msg.set__header(header);
+        detection_msg.bbox.center.position.set__x(detection.box.x + detection.box.width / 2);
+        detection_msg.bbox.center.position.set__y(detection.box.y + detection.box.height / 2);
+        detection_msg.bbox.set__size_x(detection.box.width);
+        detection_msg.bbox.set__size_y(detection.box.height);
+
+        detections_msg.detections.push_back(detection_msg);
+      }
+
+      // Publish detections
+      detections_pub_->publish(detections_msg);
     }
 
+    // Publish processed image
     camera_frame_ = image; // doesn't copy image data, but sets data type...
 
     // Create processed image message
