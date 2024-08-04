@@ -29,6 +29,29 @@ namespace ObjectDetector
 {
 
 /**
+ * @brief Parses a new image message.
+ *
+ * @param msg Image message to parse.
+ */
+void ObjectDetectorNode::image_callback(const Image::ConstSharedPtr & msg)
+{
+  LINE
+
+  // Convert msg to OpenCV image
+  cv::Mat frame = cv::Mat(
+    msg->height,
+    msg->width,
+    CV_8UC3,
+    (void *)(msg->data.data()));
+
+  // Pass data to worker thread
+  sem_wait(&sem1_);
+  new_frame_ = frame.clone();
+  last_header_ = msg->header;
+  sem_post(&sem2_);
+}
+
+/**
  * @brief Parses a new synchronized image message.
  *
  * @param image_msg Image message to parse.
@@ -37,6 +60,7 @@ namespace ObjectDetector
 void ObjectDetectorNode::sync_callback(const Image::ConstSharedPtr & image_msg,
                                        const Image::ConstSharedPtr & depth_msg)
 {
+  LINE
   UNUSED(depth_msg);
 
   // Convert msg to OpenCV image

@@ -111,6 +111,14 @@ params:
     read_only: true
     var_name: use_coco_classes_
 
+  use_depth:
+    type: bool
+    default_value: false
+    description: "Whether to use depth to estimate object position."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: use_depth_
+
   use_gpu:
     type: bool
     default_value: false

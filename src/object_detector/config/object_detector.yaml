@@ -13,6 +13,7 @@
     model_shape: [640, 480]
     onnx_path: /home/neo/workspace/src/object_detector/weights/yolov8s-seg.onnx
     transport: raw
-    use_gpu: true
     use_coco_classes: true
+    use_depth: true
+    use_gpu: true
     worker_cpu: -1

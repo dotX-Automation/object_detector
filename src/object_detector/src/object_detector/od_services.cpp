@@ -66,33 +66,51 @@ void ObjectDetectorNode::enable_callback(
         }
       }
 
-      // Subscribe to image topic
-      image_sub_ = std::make_shared<image_transport::SubscriberFilter>();
-      depth_sub_ = std::make_shared<image_transport::SubscriberFilter>();
+      if (use_depth_)
+      {
+        image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
+        depth_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
 
-      image_sub_->subscribe(
-        this,
-        "/image",
-        transport_,
-        best_effort_sub_qos_ ?
-        dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
+        // Subscribe to image topic
+        image_sub_sync_->subscribe(
+          this,
+          "/image",
+          transport_,
+          best_effort_sub_qos_ ?
+          dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
+          dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
 
-      // Subscribe to depth topic
-      depth_sub_->subscribe(
-        this,
-        "/depth",
-        transport_,
-        best_effort_sub_qos_ ?
-        dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
+        // Subscribe to depth topic
+        depth_sub_sync_->subscribe(
+          this,
+          "/depth",
+          transport_,
+          best_effort_sub_qos_ ?
+          dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
+          dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
 
-      // Initialize synchronizer
-      sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
-        depth_sync_policy(10),
-        *image_sub_,
-        *depth_sub_);
-      sync_->registerCallback(&ObjectDetectorNode::sync_callback, this);
+        // Initialize synchronizer
+        sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
+          depth_sync_policy(10),
+          *image_sub_sync_,
+          *depth_sub_sync_);
+        sync_->registerCallback(&ObjectDetectorNode::sync_callback, this);
+      }
+      else
+      {
+        image_sub_ = std::make_shared<image_transport::Subscriber>(
+          image_transport::create_subscription(
+            this,
+            "/image",
+            std::bind(
+              &ObjectDetectorNode::image_callback,
+              this,
+              std::placeholders::_1),
+            transport_,
+            best_effort_sub_qos_ ?
+            dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
+            dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile()));
+      }
 
       RCLCPP_WARN(this->get_logger(), "Object Detector ACTIVATED");
     }
@@ -106,10 +124,17 @@ void ObjectDetectorNode::enable_callback(
       sem_post(&sem2_);
       worker_.join();
 
-      // Shut down image and depth subscriber
-      sync_.reset();
-      image_sub_.reset();
-      depth_sub_.reset();
+      // Shut down subscriptions
+      if (use_depth_)
+      {
+        sync_.reset();
+        image_sub_sync_.reset();
+        depth_sub_sync_.reset();
+      }
+      else
+      {
+        image_sub_.reset();
+      }
 
       // Destroy semaphores
       sem_destroy(&sem1_);

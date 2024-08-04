@@ -138,14 +138,17 @@ private:
   void init_services();
   void init_subscriptions();
 
-  /* Subscriptions */
-  std::shared_ptr<image_transport::SubscriberFilter> image_sub_;
-  std::shared_ptr<image_transport::SubscriberFilter> depth_sub_;
-
   /* Synchronizer */
   std::shared_ptr<message_filters::Synchronizer<depth_sync_policy>> sync_;
 
+  /* Subscriptions */
+  std::shared_ptr<image_transport::SubscriberFilter> image_sub_sync_;
+  std::shared_ptr<image_transport::SubscriberFilter> depth_sub_sync_;
+  std::shared_ptr<image_transport::Subscriber> image_sub_;
+  std::shared_ptr<image_transport::Subscriber> depth_sub_;
+
   /* Topic subscriptions callbacks */
+  void image_callback(const Image::ConstSharedPtr & image_msg);
   void sync_callback(const Image::ConstSharedPtr & image_msg,
                      const Image::ConstSharedPtr & depth_msg);
 
@@ -186,6 +189,7 @@ private:
   std::string onnx_path_ = "";
   std::string transport_ = "";
   bool use_coco_classes_ = false;
+  bool use_depth_ = false;
   bool use_gpu_ = false;
   int64_t worker_cpu_ = 0;
 
