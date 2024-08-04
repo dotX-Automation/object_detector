@@ -47,8 +47,8 @@ def generate_launch_description():
         log_cmd=True,
         parameters=[cf],
         remappings=[
-            ('/camera_info', '/usb_camera/usb_camera_driver/camera/camera_info'),
-            ('/image_rect_color', '/usb_camera/usb_camera_driver/camera/image_rect_color'),
+            ('/image', '/zed/zed_driver/left/image_rect_color'),
+            ('/depth', '/zed/zed_driver/depth'),
             ('/detections', '/detections'),
             ('/detections_stream', '/detections_stream'),
         ]

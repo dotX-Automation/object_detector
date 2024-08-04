@@ -27,6 +27,7 @@ find_package(dua_node REQUIRED)
 find_package(dua_qos_cpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(message_filters REQUIRED)
 find_package(OpenCV 4.7.0 REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(Threads REQUIRED)
@@ -67,6 +68,7 @@ ament_target_dependencies(object_detector
   "dua_qos_cpp"
   "geometry_msgs"
   "image_transport"
+  "message_filters"
   "params_manager"
   "rclcpp_components"
   "rclcpp"

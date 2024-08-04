@@ -62,9 +62,11 @@ ObjectDetectorNode::~ObjectDetectorNode()
     sem_post(&sem2_);
     worker_.join();
 
-    // Shut down camera subscriber
-    camera_sub_->shutdown();
-    camera_sub_.reset();
+    // Shut down image and depth subscriber
+    image_sub_.reset();
+    image_sub_->unsubscribe();
+    depth_sub_.reset();
+    depth_sub_->unsubscribe();
 
     // Destroy semaphores
     sem_destroy(&sem1_);
@@ -122,20 +124,33 @@ void ObjectDetectorNode::init_subscriptions()
       }
     }
 
+    image_sub_ = std::make_shared<image_transport::SubscriberFilter>();
+    depth_sub_ = std::make_shared<image_transport::SubscriberFilter>();
+
     // Subscribe to image topic
-    camera_sub_ = std::make_shared<image_transport::CameraSubscriber>(
-      image_transport::create_camera_subscription(
-        this,
-        "/image_rect_color",
-        std::bind(
-          &ObjectDetectorNode::camera_callback,
-          this,
-          std::placeholders::_1,
-          std::placeholders::_2),
-        transport_,
-        best_effort_sub_qos_ ?
-        dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile()));
+    image_sub_->subscribe(
+      this,
+      "/image",
+      transport_,
+      best_effort_sub_qos_ ?
+      dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
+
+    // Subscribe to depth topic
+    depth_sub_->subscribe(
+      this,
+      "/depth",
+      transport_,
+      best_effort_sub_qos_ ?
+      dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
+
+    // Initialize synchronizer
+    sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
+      depth_sync_policy(10),
+      *image_sub_,
+      *depth_sub_);
+    sync_->registerCallback(&ObjectDetectorNode::sync_callback, this);
   }
 }
 

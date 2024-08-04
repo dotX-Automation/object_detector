@@ -15,6 +15,7 @@
   <depend>dua_qos_cpp</depend>
   <depend>geometry_msgs</depend>
   <depend>image_transport</depend>
+  <depend>message_filters</depend>
   <depend>params_manager</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>

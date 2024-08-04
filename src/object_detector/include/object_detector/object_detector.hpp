@@ -44,21 +44,25 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/exact_time.h>
+
 #include <rclcpp/rclcpp.hpp>
 
 #include <image_transport/image_transport.hpp>
 #include <image_transport/subscriber.hpp>
+#include <image_transport/subscriber_filter.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
-#include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/msg/compressed_image.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <std_msgs/msg/empty.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <vision_msgs/msg/detection2_d_array.hpp>
 
 #include <theora_wrappers/publisher.hpp>
 
-#include <vision_msgs/msg/detection2_d_array.hpp>
 
 #define UNUSED(arg) (void)(arg)
 #define LINE std::cout << __FUNCTION__ << ", LINE: " << __LINE__ << std::endl;
@@ -69,6 +73,8 @@ using namespace sensor_msgs::msg;
 using namespace std_msgs::msg;
 using namespace std_srvs::srv;
 using namespace vision_msgs::msg;
+
+typedef message_filters::sync_policies::ExactTime<Image, Image> depth_sync_policy;
 
 namespace ObjectDetector
 {
@@ -132,12 +138,16 @@ private:
   void init_services();
   void init_subscriptions();
 
-  /* image_transport subscriptions */
-  std::shared_ptr<image_transport::CameraSubscriber> camera_sub_;
+  /* Subscriptions */
+  std::shared_ptr<image_transport::SubscriberFilter> image_sub_;
+  std::shared_ptr<image_transport::SubscriberFilter> depth_sub_;
+
+  /* Synchronizer */
+  std::shared_ptr<message_filters::Synchronizer<depth_sync_policy>> sync_;
 
   /* Topic subscriptions callbacks */
-  void camera_callback(const Image::ConstSharedPtr & msg,
-                       const CameraInfo::ConstSharedPtr & camera_info_msg);
+  void sync_callback(const Image::ConstSharedPtr & image_msg,
+                     const Image::ConstSharedPtr & depth_msg);
 
   /* Topic publishers */
   rclcpp::Publisher<Detection2DArray>::SharedPtr detections_pub_;
@@ -161,7 +171,6 @@ private:
   std_msgs::msg::Header last_header_;
 
   /* Internal state variables */
-  cv::Mat cameraMatrix, distCoeffs, objPoints;
   Inference detector;
 
   /* Node parameters */
