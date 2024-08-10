@@ -8,6 +8,7 @@
   <license>GNU GPL v3.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>dua_app_management</depend>
   <depend>dua_interfaces</depend>
@@ -19,6 +20,7 @@
   <depend>params_manager</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
+  <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>

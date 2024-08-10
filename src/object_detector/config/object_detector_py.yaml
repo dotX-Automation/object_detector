@@ -1,0 +1,14 @@
+/object_detector_py:
+  ros__parameters:
+    always_pub_stream: true
+    autostart: true
+    best_effort_sub_qos: false
+    classes:
+      - drone
+    classes_targets:
+      - drone
+    image_sub_depth: 1
+    model_score_threshold: 0.5
+    model_shape: [640, 640]
+    pt_path: /home/neo/workspace/yolov8s.pt
+    use_depth: true
