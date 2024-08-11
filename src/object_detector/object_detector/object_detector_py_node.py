@@ -231,7 +231,7 @@ class ObjectDetectorNode(Node):
                         detection_msg = Detection2D()
                         # Set htpothesis
                         result = ObjectHypothesisWithPose()
-                        result.hypothesis.class_id = label
+                        result.hypothesis.class_id = self.model.names[cls]
                         result.hypothesis.score = conf
 
                         if depth is not None:
@@ -240,8 +240,9 @@ class ObjectDetectorNode(Node):
                             depth_roi = depth[y1:y2, x1:x2]
                             if nn_result.masks is not None:
                                 depth_roi = depth_roi * mask_roi
-
-                            valid_pixels = depth_roi[np.isfinite(depth_roi) & (depth_roi > 0)]
+                                valid_pixels = depth_roi[np.isfinite(depth_roi) & (depth_roi > 0)]
+                            else:
+                                valid_pixels = depth_roi[np.isfinite(depth_roi)]
 
                             sum_valid = np.sum(valid_pixels)
                             count_valid = valid_pixels.size
@@ -251,10 +252,19 @@ class ObjectDetectorNode(Node):
                             mean = sum_valid / count_valid
                             print(mean)
 
-                            # TODO
-                            result.pose.pose.position.x = 0.0
-                            result.pose.pose.position.y = 0.0
-                            result.pose.pose.position.z = 0.0
+                            # Compute centroid of the bounding box expressed wrt the center of the frame
+                            u = (x1 + x2 - image.shape[1]) / 2 / image.shape[1]
+                            v = (y1 + y2 - image.shape[0]) / 2 / image.shape[0]
+                            print('u: ', u, 'v: ', v)
+
+                            Z = mean / np.sqrt(u**2 + v**2 + 1)
+                            X = Z * u
+                            Y = Z * v
+
+                            result.pose.pose.position.x = X
+                            result.pose.pose.position.y = Y
+                            result.pose.pose.position.z = Z
+                            print('x: ', X, 'y: ', Y, 'z: ', Z)
                         else:
                             result.pose.covariance[0] = -1.0
 
@@ -268,6 +278,8 @@ class ObjectDetectorNode(Node):
                         detection_msg.bbox.size_y = float(y2 - y1)
 
                         detections_msg.detections.append(detection_msg)
+
+                    self.detections_pub.publish(detections_msg)
 
                 camera_frame = image
                 processed_image_msg = self.bridge.cv2_to_imgmsg(camera_frame, encoding="bgr8")
