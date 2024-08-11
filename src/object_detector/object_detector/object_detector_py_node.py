@@ -1,3 +1,4 @@
+import numpy as np
 import cv2 as cv
 from cv_bridge import CvBridge
 
@@ -44,6 +45,8 @@ class ObjectDetectorNode(Node):
         # Initialize other variables
         self.last_header = Header()
         self.bridge = CvBridge()
+
+        self.target_classes_ids = [i for i in self.model.names if self.model.names[i] in self.classes_targets]
 
         self.get_logger().info('Node initialized')
 
@@ -178,6 +181,7 @@ class ObjectDetectorNode(Node):
         Worker thread routine
         """
         while True:
+            depth = None
             self.sem2.acquire()
             if not self.running.load():
                 break
@@ -188,29 +192,40 @@ class ObjectDetectorNode(Node):
             self.sem1.release()
 
             # Detect targets
-            output = self.model(image, verbose=False)
-            output = output[0]
-            detections = len(output)
+            nn_results = self.model(image,
+                                 imgsz=self.model_shape,
+                                 stream=True,
+                                 verbose=False,
+                                 conf=self.model_score_threshold,
+                                 classes=self.target_classes_ids)
 
-            if detections == 0 and not self.always_pub_stream:
-                continue
+            for nn_result in nn_results:
+                detections = len(nn_result)
 
-            if detections > 0:
-                detections_msg = Detection2DArray()
-                detections_msg.header = header
+                if detections == 0 and not self.always_pub_stream:
+                    continue
 
-                boxes = output.boxes
-                # masks = output.masks
-                for box in output.boxes:
-                    conf = box.conf[0].cpu().item()
-                    if conf > self.model_score_threshold:
+                if detections > 0:
+                    detections_msg = Detection2DArray()
+                    detections_msg.header = header
+
+                    for i in range(detections):
+                        box = nn_result.boxes[i]
+                        conf = box.conf[0].cpu().item()
                         x1, y1, x2, y2 = map(int, box.xyxy[0])
                         cls = int(box.cls[0])
-                        label = self.model.names[cls]
+                        label = f'{self.model.names[cls]} {conf:.2f}'
 
                         # Draw bbox and label
                         cv.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                         cv.putText(image, label, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+                        if nn_result.masks is not None:
+                            mask = nn_result.masks[i].data.cpu().squeeze().numpy().astype(np.uint8)
+                            mask_resized = cv.resize(mask, (image.shape[1], image.shape[0]))
+                            mask_rgb = cv.cvtColor(mask_resized*255, cv.COLOR_GRAY2RGB)
+                            cv.addWeighted(image, 1.0, mask_rgb, 0.3, 0, image)
+                            mask_roi = mask_resized[y1:y2, x1:x2]
 
                         # Detection message
                         detection_msg = Detection2D()
@@ -219,23 +234,22 @@ class ObjectDetectorNode(Node):
                         result.hypothesis.class_id = label
                         result.hypothesis.score = conf
 
-                        # check if depth is empty
                         if depth is not None:
                             result.pose.covariance[0] = 1.0
+
                             depth_roi = depth[y1:y2, x1:x2]
+                            if nn_result.masks is not None:
+                                depth_roi = depth_roi * mask_roi
 
-                            sum = 0.0
-                            count = 0
+                            valid_pixels = depth_roi[np.isfinite(depth_roi) & (depth_roi > 0)]
 
-                            for i in range(depth_roi.shape[0]):
-                                for j in range(depth_roi.shape[1]):
-                                    # check if depth_roi[i, j] is not nan
-                                    if depth_roi[i, j] == depth_roi[i, j]:  # FIXME
-                                        sum += depth_roi[i, j]
-                                        count += 1
-                            if count == 0:
+                            sum_valid = np.sum(valid_pixels)
+                            count_valid = valid_pixels.size
+
+                            if count_valid == 0:
                                 continue
-                            mean = sum / count
+                            mean = sum_valid / count_valid
+                            print(mean)
 
                             # TODO
                             result.pose.pose.position.x = 0.0
@@ -255,11 +269,11 @@ class ObjectDetectorNode(Node):
 
                         detections_msg.detections.append(detection_msg)
 
-            camera_frame = image
-            processed_image_msg = self.bridge.cv2_to_imgmsg(camera_frame, encoding="bgr8")
-            processed_image_msg.header = header
+                camera_frame = image
+                processed_image_msg = self.bridge.cv2_to_imgmsg(camera_frame, encoding="bgr8")
+                processed_image_msg.header = header
 
-            self.stream_pub.publish(processed_image_msg)
+                self.stream_pub.publish(processed_image_msg)
 
     def image_callback(self, image_msg):
         """
