@@ -95,7 +95,8 @@
     "numbers": "cpp",
     "semaphore": "cpp",
     "stop_token": "cpp",
-    "__nullptr": "cpp"
+    "__nullptr": "cpp",
+    "ranges": "cpp"
   },
   // Use Pylance as language server
   "python.languageServer": "Pylance",
