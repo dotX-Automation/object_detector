@@ -52,7 +52,6 @@ file(GLOB OBJECT_DETECTOR_NODE_SRCS
   "src/object_detector/*.cpp")
 list(APPEND OBJECT_DETECTOR_NODE_SRCS init_parameters.cpp)
 
-
 # Object Detector node
 add_library(object_detector SHARED ${OBJECT_DETECTOR_NODE_SRCS})
 target_compile_definitions(object_detector PRIVATE COMPOSITION_BUILDING_DLL)

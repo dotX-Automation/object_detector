@@ -47,8 +47,8 @@ def generate_launch_description():
         log_cmd=True,
         parameters=[cf],
         remappings=[
-            ('/image', '/zed/zed_driver/left/image_rect_color'),
-            ('/depth', '/zed/zed_driver/depth'),
+            ('/image', '/zed/zed_driver/left/sd/image_rect_color'),
+            ('/depth_distances', '/zed/zed_driver/depth_distances'),
             ('/detections', '/detections'),
             ('/detections_stream', '/detections_stream'),
         ]

@@ -35,9 +35,7 @@ namespace ObjectDetector
  */
 void ObjectDetectorNode::image_callback(const Image::ConstSharedPtr & msg)
 {
-  LINE
-
-  // Convert msg to OpenCV image
+  // Convert image_msg to OpenCV image
   cv::Mat frame = cv::Mat(
     msg->height,
     msg->width,
@@ -60,19 +58,24 @@ void ObjectDetectorNode::image_callback(const Image::ConstSharedPtr & msg)
 void ObjectDetectorNode::sync_callback(const Image::ConstSharedPtr & image_msg,
                                        const Image::ConstSharedPtr & depth_msg)
 {
-  LINE
-  UNUSED(depth_msg);
-
-  // Convert msg to OpenCV image
+  // Convert image_msg to OpenCV image
   cv::Mat frame = cv::Mat(
     image_msg->height,
     image_msg->width,
     CV_8UC3,
     (void *)(image_msg->data.data()));
 
+  // Convert depth_msg to OpenCV image
+  cv::Mat depth = cv::Mat(
+    depth_msg->height,
+    depth_msg->width,
+    CV_64FC1,
+    (void *)(depth_msg->data.data()));
+
   // Pass data to worker thread
   sem_wait(&sem1_);
   new_frame_ = frame.clone();
+  new_depth_ = depth.clone();
   last_header_ = image_msg->header;
   sem_post(&sem2_);
 }

@@ -145,16 +145,24 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
     {
       indices.push_back(i);
 
-      // limit values between 0 and image size
-      float x1 = std::max(std::min(data[0], model_shape.width), 0.0f);
-      float y1 = std::max(std::min(data[1], model_shape.height), 0.0f);
-      float x2 = std::max(std::min(data[2], model_shape.width), 0.0f);
-      float y2 = std::max(std::min(data[3], model_shape.height), 0.0f);
+      // // limit values between 0 and image size
+      float cx = std::max(std::min(data[0], model_shape.width), 0.0f);
+      float cy = std::max(std::min(data[1], model_shape.height), 0.0f);
+      float w = std::max(std::min(data[2], model_shape.width), 0.0f);
+      float h = std::max(std::min(data[3], model_shape.height), 0.0f);
 
-      int left = int(x1 * x_factor);
-      int top = int(y1 * y_factor);
-      int width = int((x2 - x1) * x_factor);
-      int height = int((y2 - y1) * y_factor);
+      int left = int((cx - w/2) * x_factor);
+      int top = int((cy - h/2) * y_factor);
+      int width = int(w * x_factor);
+      int height = int(h * y_factor);
+
+      // limit left, top, width, height values between 0 and image size
+      left = std::max(std::min(left, image_input.cols), 0);
+      top = std::max(std::min(top, image_input.rows), 0);
+      if (left + width > image_input.cols)
+        width = image_input.cols - left;
+      if (top + height > image_input.rows)
+        height = image_input.rows - top;
 
       boxes.push_back(cv::Rect(left, top, width, height));
       confidences.push_back(max_class_score);
@@ -163,12 +171,14 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
 
     data += boxes_dims;
   }
-
+LINE
   std::vector<int> nms_result;
+  std::vector<int> nms_result_to_skip;
   cv::dnn::NMSBoxes(boxes, confidences, *score_threshold, *nms_threshold, nms_result);
   if (nms_result.empty()) return {};
 
   size_t nms_result_size = nms_result.size();
+std::cout << "\t\t\t\tnms size: " << nms_result_size << std::endl;
 
   std::vector<Detection> detections;
   for (size_t i = 0; i < nms_result.size(); i++)
@@ -179,6 +189,7 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
 
     if (std::find(classes_targets.begin(), classes_targets.end(), class_name) == classes_targets.end())
     {
+      nms_result_to_skip.push_back(i);
       nms_result_size--;
       continue;
     }
@@ -193,6 +204,8 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
     detections.push_back(result);
   }
 
+  if (nms_result_size == 0) return detections;
+
   // Segmentation
   if (outputs.size() > 1)
   {
@@ -206,33 +219,50 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
 
     data = (float*) boxes_output.data;
     cv::Mat masks_prediction(mask_proto, 0, CV_32FC1);
-    for (int idx : nms_result)
+    for (size_t i = 0; i < nms_result.size(); i++)
     {
+      if (std::find(nms_result_to_skip.begin(), nms_result_to_skip.end(), i) != nms_result_to_skip.end())
+        continue;
+
+      int idx = nms_result[i];
       cv::Mat masks_temp(mask_proto, 1, CV_32FC1, data + indices[idx] * boxes_dims + 4 + classes.size());
       cv::hconcat(masks_prediction, masks_temp, masks_prediction);
     }
 
     masks_output = masks_output.reshape(1, {mask_proto, mask_height*mask_width}).t();
+std::cout << "\t\t\t\tprediction" << masks_prediction.size() << std::endl;
+std::cout << "\t\t\t\tpre" << masks_output.size() << std::endl;
 
     cv::gemm(masks_output, masks_prediction, 1, cv::noArray(), 0, masks_output);
+
+std::cout << "\t\t\t\tpost" << masks_output.size() << std::endl;
 
     // Compute sigmoid of masks_output
     cv::exp(-masks_output, masks_output);
     cv::add(1.0, masks_output, masks_output);
     cv::divide(1.0, masks_output, masks_output);
+std::cout << "\t\t\t\tnms_result_size: " << nms_result_size << std::endl;
+LINE
+
+
 
     masks_output = masks_output.reshape((int) nms_result_size, {mask_height, mask_width});
+std::cout << "\t\t\t\tpostpost" << masks_output.size() << std::endl;
+
+    // // plot mask using opencv
+    // cv::imshow("mask", masks_output);
+    // cv::waitKey(1);
+LINE
     std::vector<cv::Mat> images((int) nms_result_size);
     cv::split(masks_output, images);
-
-    for (size_t i = 0; i < nms_result_size; i++)
+LINE
+    for (size_t i = 0; i < detections.size(); i++)
     {
-      int idx = nms_result[i];
-
-      int x1 = (int) std::floor(boxes[idx].x);
-      int y1 = (int) std::floor(boxes[idx].y);
-      int x2 = (int) std::ceil(boxes[idx].x + boxes[idx].width);
-      int y2 = (int) std::ceil(boxes[idx].y + boxes[idx].height);
+      Detection& detection = detections[i];
+      int x1 = detection.box.x;
+      int y1 = detection.box.y;
+      int x2 = detection.box.x + detection.box.width;
+      int y2 = detection.box.y + detection.box.height;
 
       int scale_x1 = x1 / x_factor_segm;
       int scale_y1 = y1 / y_factor_segm;
@@ -243,15 +273,15 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
 
       cv::resize(crop_mask, crop_mask, cv::Size(x2 - x1, y2 - y1));
 
-      cv::Size kernel_size = cv::Size(int(x_factor_segm) % 2 ? int(x_factor_segm) : int(x_factor_segm)+1,
-                                      int(y_factor_segm) % 2 ? int(y_factor_segm) : int(y_factor_segm)+1);
+      cv::Size kernel_size = cv::Size(int(x_factor_segm) % 2 ? int(x_factor_segm) : int(x_factor_segm) + 1,
+                                      int(y_factor_segm) % 2 ? int(y_factor_segm) : int(y_factor_segm) + 1);
       cv::GaussianBlur(crop_mask, crop_mask, kernel_size, 0);
       cv::threshold(crop_mask, crop_mask, 0.5, 1, cv::THRESH_BINARY);
 
-      detections[i].mask = crop_mask;
+      detection.mask = crop_mask;
     }
   }
-
+LINE
   return detections;
 }
 

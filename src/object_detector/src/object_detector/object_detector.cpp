@@ -62,7 +62,7 @@ ObjectDetectorNode::~ObjectDetectorNode()
     sem_post(&sem2_);
     worker_.join();
 
-    // Shut down subscriptions
+    // Shutdown subscriptions
     if (use_depth_)
     {
       sync_.reset();
@@ -142,12 +142,12 @@ void ObjectDetectorNode::init_subscriptions()
         transport_,
         best_effort_sub_qos_ ?
         dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
+        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());src/object_detector/src/object_detector/od_services.cpp
 
       // Subscribe to depth topic
       depth_sub_sync_->subscribe(
         this,
-        "/depth",
+        "/depth_distances",
         transport_,
         best_effort_sub_qos_ ?
         dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
@@ -188,7 +188,7 @@ void ObjectDetectorNode::init_publishers()
     "/detections",
     dua_qos::Reliable::get_datum_qos());
 
-  // Detection stream
+  // Detections stream
   stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
     "/detections_stream",
@@ -218,25 +218,28 @@ void ObjectDetectorNode::worker_thread_routine()
   while (true) {
     // Get new data
     std_msgs::msg::Header header;
-    cv::Mat image{};
+    cv::Mat image{}, depth{};
     sem_wait(&sem2_);
     if (!running_.load(std::memory_order_acquire)) { break; }
-    image = new_frame_.clone();
     header = last_header_;
+    image = new_frame_.clone();
+    depth = new_depth_.clone();
     sem_post(&sem1_);
-
+//LINE
     // Detect targets
     std::vector<Detection> output = detector.run_inference(image);
     int detections = output.size();
+//LINE
+    std::cout << "Detected " << detections << " objects" << std::endl;
 
     // Return if no target is detected
     if (detections == 0 && !always_pub_stream_) { continue; }
-
+//LINE
     if (detections != 0)
     {
       Detection2DArray detections_msg;
       detections_msg.set__header(header);
-
+//LINE
       for (int i = 0; i < detections; i++)
       {
         Detection detection = output[i];
@@ -248,7 +251,7 @@ void ObjectDetectorNode::worker_thread_routine()
         cv::Rect box = detection.box;
         cv::Scalar color = detection.color;
         cv::Mat mask = detection.mask;
-
+//LINE
         // Detection box
         cv::rectangle(image, box, color, 2);
 
@@ -262,7 +265,7 @@ void ObjectDetectorNode::worker_thread_routine()
           cv::Mat roi = image(box);
           cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
         }
-
+//LINE
         // Detection message
         Detection2D detection_msg;
 
@@ -270,13 +273,45 @@ void ObjectDetectorNode::worker_thread_routine()
         ObjectHypothesisWithPose result;
         result.hypothesis.set__class_id(detection.class_name);
         result.hypothesis.set__score(detection.confidence);
-        result.pose.covariance[0] = -1.0;     // TODO
-        result.pose.pose.position.set__x(0);  // TODO
-        result.pose.pose.position.set__y(0);  // TODO
-        result.pose.pose.position.set__z(0);  // TODO
+        std::cout << "depth.data == nullptr: " << (depth.data == nullptr) << std::endl;
+        if (depth.data != nullptr)
+        {
+          result.pose.covariance[0] = 1.0;
+//LINE
+          // Get bounding box rectangle from depth image
+          cv::Mat depth_roi = depth(box);
 
+          // // Remove NaN values from depth_roi
+          // cv::Mat mask_nan = cv::Mat::zeros(depth_roi.size(), CV_8U);
+          // cv::compare(depth_roi, 0, mask_nan, cv::CMP_GT);
+          // cv::Scalar mean_depth = cv::mean(depth_roi, mask_nan);
+
+          double sum = 0.0;
+          int count = 0;
+
+          for (int i = 0; i < depth_roi.rows; i++) {
+              for (int j = 0; j < depth_roi.cols; j++) {
+                  if (!isnan(depth_roi.at<double>(i, j))) {
+                      sum += depth_roi.at<double>(i, j);
+                      count++;
+                  }
+              }
+          }
+          if (count == 0) { continue; }
+          double mean = sum / count;
+//LINE
+          // std::cout << "Mean depth: " << mean << std::endl;
+
+          result.pose.pose.position.set__x(0);  // TODO
+          result.pose.pose.position.set__y(0);  // TODO
+          result.pose.pose.position.set__z(0);  // TODO
+        }
+        else
+        {
+          result.pose.covariance[0] = -1.0;
+        }
         detection_msg.results.push_back(result);
-
+//LINE
         // Set bounding box
         detection_msg.set__header(header);
         detection_msg.bbox.center.position.set__x(detection.box.x + detection.box.width / 2);
@@ -286,14 +321,14 @@ void ObjectDetectorNode::worker_thread_routine()
 
         detections_msg.detections.push_back(detection_msg);
       }
-
+//LINE
       // Publish detections
       detections_pub_->publish(detections_msg);
     }
 
     // Publish processed image
     camera_frame_ = image; // doesn't copy image data, but sets data type...
-
+//LINE
     // Create processed image message
     Image::SharedPtr processed_image_msg = frame_to_msg(camera_frame_);
     processed_image_msg->set__header(header);

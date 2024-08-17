@@ -83,7 +83,7 @@ void ObjectDetectorNode::enable_callback(
         // Subscribe to depth topic
         depth_sub_sync_->subscribe(
           this,
-          "/depth",
+          "/depth_distances",
           transport_,
           best_effort_sub_qos_ ?
           dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
@@ -124,7 +124,7 @@ void ObjectDetectorNode::enable_callback(
       sem_post(&sem2_);
       worker_.join();
 
-      // Shut down subscriptions
+      // Shutdown subscriptions
       if (use_depth_)
       {
         sync_.reset();

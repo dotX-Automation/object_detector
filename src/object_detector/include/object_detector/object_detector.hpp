@@ -46,6 +46,7 @@
 
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
 
 #include <rclcpp/rclcpp.hpp>
@@ -170,7 +171,7 @@ private:
     SetBool::Response::SharedPtr resp);
 
   /* Data buffers */
-  cv::Mat camera_frame_, new_frame_;
+  cv::Mat camera_frame_, new_frame_, new_depth_;
   std_msgs::msg::Header last_header_;
 
   /* Internal state variables */
