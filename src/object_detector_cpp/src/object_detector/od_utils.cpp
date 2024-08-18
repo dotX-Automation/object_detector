@@ -1,8 +1,7 @@
 /**
- * Object Detector node auxiliary functions.
+ * Object Detector auxiliary functions.
  *
- * Lorenzo Bianchi <lnz.bnc@gmail.com>
- * Intelligent Systems Lab <isl.torvergata@gmail.com>
+ * dotX Automation <info@dotxautomation.com>
  *
  * June 4, 2024
  */

@@ -1,14 +1,13 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>object_detector</name>
+  <name>object_detector_cpp</name>
   <version>1.0.0</version>
-  <description>Object detection module.</description>
-  <maintainer email="isl.torvergata@gmail.com">Intelligent Systems Lab</maintainer>
-  <license>GNU GPL v3.0</license>
+  <description>Object Detector module.</description>
+  <maintainer email="info@dotxautomation.com">dotX Automation</maintainer>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>dua_app_management</depend>
   <depend>dua_interfaces</depend>
@@ -20,7 +19,6 @@
   <depend>params_manager</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
-  <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>

@@ -33,7 +33,7 @@ class AtomicBool:
 
 class ObjectDetectorNode(Node):
     def __init__(self):
-        super().__init__('object_detector_py')
+        super().__init__('object_detector')
 
         self.init_parameters()
         self.init_atomics()
@@ -75,15 +75,15 @@ class ObjectDetectorNode(Node):
         """
         self.declare_parameters(
             namespace='',
-            parameters=[('always_pub_stream', True),
-                        ('autostart', True),
+            parameters=[('always_pub_stream', False),
+                        ('autostart', False),
                         ('best_effort_sub_qos', False),
-                        ('classes', ['drone']),
-                        ('classes_targets', ['drone']),
+                        ('classes', ['']),
+                        ('classes_targets', ['']),
                         ('image_sub_depth', 1),
-                        ('model_score_threshold', 0.5),
-                        ('model_shape', [640, 640]),
-                        ('pt_path', '/home/neo/workspace/src/object_detector/weights/yolov8m_drone_mixed.pt'),
+                        ('model_score_threshold', 0.1),
+                        ('model_shape', [100, 100]),
+                        ('pt_path', ''),
                         ('use_depth', False)
                        ])
 
@@ -250,12 +250,10 @@ class ObjectDetectorNode(Node):
                             if count_valid == 0:
                                 continue
                             mean = sum_valid / count_valid
-                            print(mean)
 
-                            # Compute centroid of the bounding box expressed wrt the center of the frame
+                            # Compute centroid of the bounding box expressed wrt frame center
                             u = (x1 + x2 - image.shape[1]) / 2 / image.shape[1]
                             v = (y1 + y2 - image.shape[0]) / 2 / image.shape[0]
-                            print('u: ', u, 'v: ', v)
 
                             Z = mean / np.sqrt(u**2 + v**2 + 1)
                             X = Z * u
@@ -264,6 +262,9 @@ class ObjectDetectorNode(Node):
                             result.pose.pose.position.x = X
                             result.pose.pose.position.y = Y
                             result.pose.pose.position.z = Z
+
+                            print(mean)
+                            print('u: ', u, 'v: ', v)
                             print('x: ', X, 'y: ', Y, 'z: ', Z)
                         else:
                             result.pose.covariance[0] = -1.0

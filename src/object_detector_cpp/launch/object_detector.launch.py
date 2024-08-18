@@ -1,7 +1,7 @@
 """
 Object Detector launch file.
 
-August 7, 2023
+June 4, 2024
 """
 
 import os
@@ -18,7 +18,7 @@ def generate_launch_description():
 
     # Build config file path
     config = os.path.join(
-        get_package_share_directory('object_detector'),
+        get_package_share_directory('object_detector_cpp'),
         'config',
         'object_detector.yaml'
     )
@@ -39,7 +39,7 @@ def generate_launch_description():
 
     # Create node launch description
     node = Node(
-        package='object_detector',
+        package='object_detector_cpp',
         executable='object_detector_app',
         namespace=ns,
         emulate_tty=True,

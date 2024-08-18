@@ -1,8 +1,7 @@
 /**
- * Object Detector node service callbacks.
+ * Object Detector service callbacks.
  *
- * Lorenzo Bianchi <lnz.bnc@gmail.com>
- * Intelligent Systems Lab <isl.torvergata@gmail.com>
+ * dotX Automation <info@dotxautomation.com>
  *
  * June 4, 2024
  */

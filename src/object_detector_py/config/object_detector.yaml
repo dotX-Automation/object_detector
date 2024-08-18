@@ -1,4 +1,4 @@
-/object_detector_py:
+/object_detector:
   ros__parameters:
     always_pub_stream: true
     autostart: true

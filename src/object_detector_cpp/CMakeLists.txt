@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(object_detector)
+project(object_detector_cpp)
 
 set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 
@@ -21,7 +21,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
 find_package(dua_app_management REQUIRED)
 find_package(dua_interfaces REQUIRED)
 find_package(dua_node REQUIRED)
@@ -35,7 +34,6 @@ find_package(Threads REQUIRED)
 find_package(params_manager REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(theora_wrappers REQUIRED)
@@ -109,15 +107,6 @@ install(DIRECTORY config
 # Install Launch files
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
-
-# Install Python modules
-ament_python_install_package(${PROJECT_NAME})
-
-# Install Python executables
-install(PROGRAMS
-  object_detector/object_detector_py_app.py
-  DESTINATION lib/${PROJECT_NAME}
-)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

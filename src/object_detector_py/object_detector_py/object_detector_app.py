@@ -3,7 +3,7 @@
 import sys
 import rclpy
 from rclpy.executors import SingleThreadedExecutor
-from object_detector.object_detector_py_node import ObjectDetectorNode
+from object_detector_py.object_detector_node import ObjectDetectorNode
 
 def main():
     # Initialize ROS 2 context and node

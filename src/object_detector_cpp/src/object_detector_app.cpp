@@ -2,7 +2,7 @@
  * Object Detector standalone application.
  *
  * Lorenzo Bianchi <lnz.bnc@gmail.com>
- * Intelligent Systems Lab <isl.torvergata@gmail.com>
+ * dotX Automation <info@dotxautomation.com>
  *
  * June 4, 2024
  */

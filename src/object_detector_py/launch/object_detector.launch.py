@@ -1,7 +1,7 @@
 """
 Object Detector Python launch file.
 
-August 7, 2023
+June 4, 2024
 """
 
 import os
@@ -18,9 +18,9 @@ def generate_launch_description():
 
     # Build config file path
     config = os.path.join(
-        get_package_share_directory('object_detector'),
+        get_package_share_directory('object_detector_py'),
         'config',
-        'object_detector_py.yaml'
+        'object_detector.yaml'
     )
 
     # Declare launch arguments
@@ -39,10 +39,11 @@ def generate_launch_description():
 
     # Create node launch description
     node = Node(
-        package='object_detector',
-        executable='object_detector_py_app.py',
+        package='object_detector_py',
+        executable='object_detector_py',
         namespace=ns,
         emulate_tty=True,
+        shell=False,
         output='both',
         log_cmd=True,
         parameters=[cf],
