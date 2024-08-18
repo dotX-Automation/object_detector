@@ -15,6 +15,6 @@
     onnx_path: /home/neo/workspace/yolov8n-seg.onnx
     transport: raw
     use_coco_classes: true
-    use_depth: false
+    use_depth: true
     use_gpu: true
     worker_cpu: -1

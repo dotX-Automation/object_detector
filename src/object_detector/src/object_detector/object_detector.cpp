@@ -271,7 +271,7 @@ void ObjectDetectorNode::worker_thread_routine()
         ObjectHypothesisWithPose result;
         result.hypothesis.set__class_id(detection.class_name);
         result.hypothesis.set__score(detection.confidence);
-        std::cout << "depth.data == nullptr: " << (depth.data == nullptr) << std::endl;
+
         if (depth.data != nullptr)
         {
           result.pose.covariance[0] = 1.0;
@@ -287,20 +287,63 @@ void ObjectDetectorNode::worker_thread_routine()
           double sum = 0.0;
           int count = 0;
 
-          for (int i = 0; i < depth_roi.rows; i++) {
-              for (int j = 0; j < depth_roi.cols; j++) {
-                  if (!isnan(depth_roi.at<double>(i, j))) {
-                      sum += depth_roi.at<double>(i, j);
-                      count++;
-                  }
+          if (mask.empty())
+          {
+            std::cout << "mask is empty" << std::endl;
+            for (int i = 0; i < depth_roi.rows; i++)
+            {
+              for (int j = 0; j < depth_roi.cols; j++)
+              {
+                if (!isnan(depth_roi.at<double>(i, j)))
+                {
+                  sum += depth_roi.at<double>(i, j);
+                  count++;
+                }
               }
+            }
+          }
+          else
+          {
+            std::cout << "Mask not empty" << std::endl;
+            for (int i = 0; i < depth_roi.rows; i++)
+            {
+              for (int j = 0; j < depth_roi.cols; j++)
+              {
+                if (!isnan(depth_roi.at<double>(i, j)) && mask.at<uchar>(i, j) > 0)
+                {
+                  sum += depth_roi.at<double>(i, j);
+                  count++;
+                }
+              }
+            }
           }
           if (count == 0) { continue; }
           double mean = sum / count;
 
-          result.pose.pose.position.set__x(0);  // TODO
-          result.pose.pose.position.set__y(0);  // TODO
-          result.pose.pose.position.set__z(0);  // TODO
+          int x1 = box.x;
+          int y1 = box.y;
+          int x2 = box.x + box.width;
+          int y2 = box.y + box.height;
+
+          std::cout << "x1: " << x1 << ", y1: " << y1 << std::endl;
+          std::cout << "x2: " << x2 << ", y2: " << y2 << std::endl;
+          std::cout << "image size: " << image.size().width << ", " << image.size().height << std::endl;
+
+          double w = image.size().width;
+          double h = image.size().height;
+          double u = (x1 + x2 - w) / 2.0 / w;
+          double v = (y1 + y2 - h) / 2.0 / h;
+
+          std::cout << "u: " << u << ", v: " << v << std::endl;
+          std::cout << "mean: " << mean << std::endl;
+
+          double Z = mean / sqrt(u*u + v*v + 1);
+          double Y = Z * v;
+          double X = Z * u;
+
+          result.pose.pose.position.set__x(X);
+          result.pose.pose.position.set__y(Y);
+          result.pose.pose.position.set__z(Z);
         }
         else
         {
