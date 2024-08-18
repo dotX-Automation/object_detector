@@ -171,14 +171,13 @@ std::vector<Detection> Inference::run_inference(cv::Mat& input)
 
     data += boxes_dims;
   }
-LINE
+
   std::vector<int> nms_result;
   std::vector<int> nms_result_to_skip;
   cv::dnn::NMSBoxes(boxes, confidences, *score_threshold, *nms_threshold, nms_result);
   if (nms_result.empty()) return {};
 
   size_t nms_result_size = nms_result.size();
-std::cout << "\t\t\t\tnms size: " << nms_result_size << std::endl;
 
   std::vector<Detection> detections;
   for (size_t i = 0; i < nms_result.size(); i++)
@@ -230,32 +229,23 @@ std::cout << "\t\t\t\tnms size: " << nms_result_size << std::endl;
     }
 
     masks_output = masks_output.reshape(1, {mask_proto, mask_height*mask_width}).t();
-std::cout << "\t\t\t\tprediction" << masks_prediction.size() << std::endl;
-std::cout << "\t\t\t\tpre" << masks_output.size() << std::endl;
 
     cv::gemm(masks_output, masks_prediction, 1, cv::noArray(), 0, masks_output);
-
-std::cout << "\t\t\t\tpost" << masks_output.size() << std::endl;
 
     // Compute sigmoid of masks_output
     cv::exp(-masks_output, masks_output);
     cv::add(1.0, masks_output, masks_output);
     cv::divide(1.0, masks_output, masks_output);
-std::cout << "\t\t\t\tnms_result_size: " << nms_result_size << std::endl;
-LINE
-
-
 
     masks_output = masks_output.reshape((int) nms_result_size, {mask_height, mask_width});
-std::cout << "\t\t\t\tpostpost" << masks_output.size() << std::endl;
 
     // // plot mask using opencv
     // cv::imshow("mask", masks_output);
     // cv::waitKey(1);
-LINE
+
     std::vector<cv::Mat> images((int) nms_result_size);
     cv::split(masks_output, images);
-LINE
+
     for (size_t i = 0; i < detections.size(); i++)
     {
       Detection& detection = detections[i];
@@ -281,7 +271,6 @@ LINE
       detection.mask = crop_mask;
     }
   }
-LINE
   return detections;
 }
 

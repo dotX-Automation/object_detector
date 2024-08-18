@@ -142,7 +142,7 @@ void ObjectDetectorNode::init_subscriptions()
         transport_,
         best_effort_sub_qos_ ?
         dua_qos::BestEffort::get_image_qos(image_sub_depth_).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());src/object_detector/src/object_detector/od_services.cpp
+        dua_qos::Reliable::get_image_qos(image_sub_depth_).get_rmw_qos_profile());
 
       // Subscribe to depth topic
       depth_sub_sync_->subscribe(
@@ -225,21 +225,19 @@ void ObjectDetectorNode::worker_thread_routine()
     image = new_frame_.clone();
     depth = new_depth_.clone();
     sem_post(&sem1_);
-//LINE
+
     // Detect targets
     std::vector<Detection> output = detector.run_inference(image);
     int detections = output.size();
-//LINE
-    std::cout << "Detected " << detections << " objects" << std::endl;
 
     // Return if no target is detected
     if (detections == 0 && !always_pub_stream_) { continue; }
-//LINE
+
     if (detections != 0)
     {
       Detection2DArray detections_msg;
       detections_msg.set__header(header);
-//LINE
+
       for (int i = 0; i < detections; i++)
       {
         Detection detection = output[i];
@@ -251,7 +249,7 @@ void ObjectDetectorNode::worker_thread_routine()
         cv::Rect box = detection.box;
         cv::Scalar color = detection.color;
         cv::Mat mask = detection.mask;
-//LINE
+
         // Detection box
         cv::rectangle(image, box, color, 2);
 
@@ -265,7 +263,7 @@ void ObjectDetectorNode::worker_thread_routine()
           cv::Mat roi = image(box);
           cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
         }
-//LINE
+
         // Detection message
         Detection2D detection_msg;
 
@@ -277,7 +275,7 @@ void ObjectDetectorNode::worker_thread_routine()
         if (depth.data != nullptr)
         {
           result.pose.covariance[0] = 1.0;
-//LINE
+
           // Get bounding box rectangle from depth image
           cv::Mat depth_roi = depth(box);
 
@@ -299,8 +297,6 @@ void ObjectDetectorNode::worker_thread_routine()
           }
           if (count == 0) { continue; }
           double mean = sum / count;
-//LINE
-          // std::cout << "Mean depth: " << mean << std::endl;
 
           result.pose.pose.position.set__x(0);  // TODO
           result.pose.pose.position.set__y(0);  // TODO
@@ -311,7 +307,7 @@ void ObjectDetectorNode::worker_thread_routine()
           result.pose.covariance[0] = -1.0;
         }
         detection_msg.results.push_back(result);
-//LINE
+
         // Set bounding box
         detection_msg.set__header(header);
         detection_msg.bbox.center.position.set__x(detection.box.x + detection.box.width / 2);
@@ -321,14 +317,14 @@ void ObjectDetectorNode::worker_thread_routine()
 
         detections_msg.detections.push_back(detection_msg);
       }
-//LINE
+
       // Publish detections
       detections_pub_->publish(detections_msg);
     }
 
     // Publish processed image
     camera_frame_ = image; // doesn't copy image data, but sets data type...
-//LINE
+
     // Create processed image message
     Image::SharedPtr processed_image_msg = frame_to_msg(camera_frame_);
     processed_image_msg->set__header(header);
