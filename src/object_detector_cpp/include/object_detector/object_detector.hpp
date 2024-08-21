@@ -116,6 +116,9 @@ private:
   /* Theora stream publishers. */
   std::shared_ptr<TheoraWrappers::Publisher> stream_pub_;
 
+  /* Service servers callback groups. */
+  rclcpp::CallbackGroup::SharedPtr enable_cgroup_;
+
   /* Service servers. */
   rclcpp::Service<SetBool>::SharedPtr enable_server_;
 

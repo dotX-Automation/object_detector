@@ -213,8 +213,8 @@ void ObjectDetector::worker_thread_routine()
             }
             for (int i = 0; i < depth_roi.rows; i++) {
               for (int j = 0; j < depth_roi.cols; j++) {
-                if (!std::isnan(depth_roi.at<float>(i, j))) {
-                  sum += double(depth_roi.at<float>(i, j));
+                if (!isnan(depth_roi.at<double>(i, j))) {
+                  sum += depth_roi.at<double>(i, j);
                   count++;
                 }
               }
@@ -225,8 +225,8 @@ void ObjectDetector::worker_thread_routine()
             }
             for (int i = 0; i < depth_roi.rows; i++) {
               for (int j = 0; j < depth_roi.cols; j++) {
-                if (!std::isnan(depth_roi.at<float>(i, j)) && mask.at<uchar>(i, j) > 0) {
-                  sum += double(depth_roi.at<float>(i, j));
+                if (!isnan(depth_roi.at<double>(i, j)) && mask.at<uchar>(i, j) > 0) {
+                  sum += depth_roi.at<double>(i, j);
                   count++;
                 }
               }
