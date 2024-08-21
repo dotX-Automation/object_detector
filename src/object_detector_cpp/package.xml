@@ -3,7 +3,7 @@
 <package format="3">
   <name>object_detector_cpp</name>
   <version>1.0.0</version>
-  <description>Object Detector module.</description>
+  <description>C++ object detection module.</description>
   <maintainer email="info@dotxautomation.com">dotX Automation</maintainer>
   <license>Apache-2.0</license>
 

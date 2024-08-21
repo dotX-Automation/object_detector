@@ -1,5 +1,5 @@
 """
-Object Detector launch file.
+Object Detector app launch file.
 
 June 4, 2024
 """
@@ -47,10 +47,9 @@ def generate_launch_description():
         log_cmd=True,
         parameters=[cf],
         remappings=[
-            ('/image', '/zed/zed_driver/left/sd/image_rect_color'),
-            ('/depth_distances', '/zed/zed_driver/depth_distances'),
-            ('/detections', '/detections'),
-            ('/detections_stream', '/detections_stream'),
+            ('/depth_distances', '/depth_distances'),
+            ('/object_detector/detections', '/object_detector/detections'),
+            ('/object_detector/detections_stream', '/object_detector/detections_stream'),
         ]
     )
 

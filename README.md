@@ -1,6 +1,15 @@
-# dua-template
+# object_detector
 
-GitHub template repositories for projects based on the Distributed Unified Architecture.
+Collection of ROS 2 software modules for object detection using inference.
+
+## Contents
+
+- [x] [`object_detector_cpp`](src/object_detector_cpp/) C++ ROS 2 node and component for object detection.
+- [x] [`object_detector_py`](src/object_detector_py/) Python ROS 2 node for object detection.
+
+## DUA integration
+
+This project is built upon the Distributed Unified Architecture (DUA).
 
 See [`dua-template.md`](dua-template.md) for more information.
 

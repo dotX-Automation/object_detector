@@ -1,15 +1,15 @@
 header_include_path: object_detector/object_detector.hpp
-namespace: ObjectDetector
-node_class_name: ObjectDetectorNode
+namespace: object_detector
+node_class_name: ObjectDetector
 
 params:
-  always_pub_stream:
+  always_publish_stream:
     type: bool
     default_value: false
-    description: "Whether to always publish images even without detections."
-    constraints: "Can be changed."
+    description: "Whether to always publish video feed even without detections."
+    constraints: ""
     read_only: false
-    var_name: always_pub_stream_
+    var_name: always_publish_stream_
 
   autostart:
     type: bool
@@ -19,51 +19,21 @@ params:
     read_only: true
     var_name: autostart_
 
-  best_effort_sub_qos:
-    type: bool
-    default_value: false
-    description: "Whether to subscribe to the input topics with a best effort QoS."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: best_effort_sub_qos_
-
   classes:
     type: string_array
     default_value: [""]
-    description: "Classes names."
-    constraints: "Only used when use_coco_dataset is false. Cannot be changed."
+    description: "Names of classes that the model will detect."
+    constraints: "Only used when use_coco_dataset is false, cannot be changed."
     read_only: true
     var_name: classes_
 
   classes_targets:
     type: string_array
     default_value: [""]
-    description: "Target classes names."
+    description: "Class names of the targets to detect."
     constraints: "Cannot be changed."
     read_only: true
     var_name: classes_targets_
-
-  model_shape:
-    type: integer_array
-    default_value: [0]
-    min_value: 0
-    max_value: 10000
-    step: 1
-    description: "Model input dimensions."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: model_shape_
-
-  image_sub_depth:
-    type: integer
-    default_value: 1
-    min_value: 0
-    max_value: 100
-    step: 1
-    description: "Image subscriber queue depth."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: image_sub_depth_
 
   model_NMS_threshold:
     type: double
@@ -76,6 +46,14 @@ params:
     read_only: false
     var_name: model_NMS_threshold_
 
+  model_path:
+    type: string
+    default_value: ''
+    description: "Path to neural network model file."
+    constraints: "Must be a valid path to a model file in ONNX format."
+    read_only: true
+    var_name: model_path_
+
   model_score_threshold:
     type: double
     default_value: 0.1
@@ -87,21 +65,47 @@ params:
     read_only: false
     var_name: model_score_threshold_
 
-  onnx_path:
-    type: string
-    default_value: /
-    description: "Path to ONNX neural network."
+  model_shape:
+    type: integer_array
+    default_value: [0]
+    min_value: 0
+    max_value: 10000
+    step: 1
+    description: "Model input dimensions."
     constraints: "Cannot be changed."
     read_only: true
-    var_name: onnx_path_
+    var_name: model_shape_
 
-  transport:
+  subscriber_base_topic_name:
+    type: string
+    default_value: ''
+    description: "Base name of the input topics to be passed to image_transport APIs."
+    constraints: "Cannot be changed, must be a valid ROS 2 topic family name for image_transport."
+    read_only: true
+
+  subscriber_best_effort_qos:
+    type: bool
+    default_value: false
+    description: "Whether to subscribe to input topics with a best effort QoS."
+    constraints: "Cannot be changed."
+    read_only: true
+
+  subscriber_depth:
+    type: integer
+    default_value: 1
+    min_value: 0
+    max_value: 100
+    step: 1
+    description: "image_transport subscribers queue depth."
+    constraints: "Cannot be changed."
+    read_only: true
+
+  subscriber_transport:
     type: string
     default_value: raw
     description: "Transport type to use with image_transport."
     constraints: "Cannot be changed."
     read_only: true
-    var_name: transport_
 
   use_coco_classes:
     type: bool
@@ -114,7 +118,7 @@ params:
   use_depth:
     type: bool
     default_value: false
-    description: "Whether to use depth to estimate object position."
+    description: "Whether to use depth data to estimate object position."
     constraints: "Cannot be changed."
     read_only: true
     var_name: use_depth_
@@ -122,10 +126,18 @@ params:
   use_gpu:
     type: bool
     default_value: false
-    description: "Whether to use GPU to run YOLO."
+    description: "Whether to use GPU acceleration to run YOLO."
     constraints: "Cannot be changed."
     read_only: true
     var_name: use_gpu_
+
+  verbose:
+    type: bool
+    default_value: false
+    description: "Enables debug log messages."
+    constraints: ""
+    read_only: false
+    var_name: verbose_
 
   worker_cpu:
     type: integer
@@ -133,7 +145,7 @@ params:
     min_value: -1
     max_value: 255
     step: 1
-    description: "CPU on which the worker will be pinned."
+    description: "CPU on which the worker thread will be pinned."
     constraints: "Cannot be changed, -1 disables this policy."
     read_only: true
     var_name: worker_cpu_

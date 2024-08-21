@@ -1,30 +1,35 @@
 /**
  * Object Detector auxiliary functions.
  *
- * dotX Automation <info@dotxautomation.com>
+ * dotX Automation s.r.l. <info@dotxautomation.com>
  *
  * June 4, 2024
  */
 
 /**
- * This is free software.
- * You can redistribute it and/or modify this file under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
+ * Copyright 2024 dotX Automation s.r.l.
  *
- * This file is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * You should have received a copy of the GNU General Public License along with
- * this file; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
+#include <stdexcept>
+
+#include <pthread.h>
+#include <sched.h>
 
 #include <object_detector/object_detector.hpp>
 
-namespace ObjectDetector
+namespace object_detector
 {
 
 /**
@@ -33,7 +38,7 @@ namespace ObjectDetector
  * @param frame cv::Mat storing the frame.
  * @return Shared pointer to a new Image message.
  */
-Image::SharedPtr ObjectDetectorNode::frame_to_msg(cv::Mat& frame)
+Image::SharedPtr ObjectDetector::frame_to_msg(cv::Mat & frame)
 {
   auto ros_image = std::make_shared<Image>();
 
@@ -42,10 +47,7 @@ Image::SharedPtr ObjectDetectorNode::frame_to_msg(cv::Mat& frame)
   ros_image->set__height(frame.rows);
   ros_image->set__encoding(sensor_msgs::image_encodings::BGR8);
   ros_image->set__step(frame.cols * frame.elemSize());
-
-  // Check data endianness
-  int num = 1;
-  ros_image->set__is_bigendian(!(*(char *)&num == 1));
+  ros_image->set__is_bigendian(false);
 
   // Copy frame data (this avoids the obsolete cv_bridge)
   size_t size = ros_image->step * frame.rows;
@@ -56,242 +58,112 @@ Image::SharedPtr ObjectDetectorNode::frame_to_msg(cv::Mat& frame)
 }
 
 /**
- * @brief Inference class constructor.
+ * @brief Initializes and activates the detector.
  *
- * @param onnx_model_path string with model path.
- * @param model_input_shape cv::Size with model input shape.
- * @param run_with_cuda boolean to run with CUDA.
- * @param score_threshold pointer to score threshold value.
- * @param nms_threshold pointer to NMS threshold value.
- * @param classes vector of classes names.
- * @param classes_targets vector of classes names to be found.
+ * @throws std::runtime_error if initialization fails.
  */
-Inference::Inference(std::string& onnx_model_path,
-                     cv::Size model_input_shape,
-                     bool run_with_cuda,
-                     double* score_threshold,
-                     double* nms_threshold,
-                     std::vector<std::string>& classes,
-                     std::vector<std::string>& classes_targets)
+void ObjectDetector::activate_detector()
 {
-  this->model_path = onnx_model_path;
-  this->model_shape = model_input_shape;
-  this->cuda_enabled = run_with_cuda;
-  this->score_threshold = score_threshold;
-  this->nms_threshold = nms_threshold;
-  this->classes = classes;
-  this->classes_targets = classes_targets;
+  // Initialize semaphores
+  sem_init(&sem1_, 0, 1);
+  sem_init(&sem2_, 0, 0);
 
-  // Create colors vector randomly
-  int seed = 1;
-  std::mt19937 gen = std::mt19937(seed);
-  std::uniform_int_distribution<int> dis = std::uniform_int_distribution<int>(100, 255);
-  for (size_t i = 0; i < classes.size(); i++)
-    colors.push_back(cv::Scalar(dis(gen), dis(gen), dis(gen)));
+  // Spawn worker thread
+  running_.store(true, std::memory_order_release);
+  worker_ = std::thread(
+    &ObjectDetector::worker_thread_routine,
+    this);
+  if (worker_cpu_ != -1) {
+    cpu_set_t worker_cpu_set;
+    CPU_ZERO(&worker_cpu_set);
+    CPU_SET(worker_cpu_, &worker_cpu_set);
+    if (pthread_setaffinity_np(
+        worker_.native_handle(),
+        sizeof(cpu_set_t),
+        &worker_cpu_set))
+    {
+      char err_msg_buf[100] = {};
+      char * err_msg = strerror_r(errno, err_msg_buf, 100);
+      throw std::runtime_error(
+              "ObjectDetector::activate_detector: Failed to configure worker thread: " +
+              std::string(err_msg));
+    }
+  }
 
-  load_onnx_network();
+  std::string base_topic_name = this->get_parameter("subscriber_base_topic_name").as_string();
+  std::string transport = this->get_parameter("subscriber_transport").as_string();
+  bool best_effort_qos = this->get_parameter("subscriber_best_effort_qos").as_bool();
+  int64_t depth = this->get_parameter("subscriber_depth").as_int();
 
-  // Print classes names to be found
-  std::cout << "Objects to be found: " << std::endl;
-  for (std::string target : classes_targets)
-    std::cout << "\t- " << target << std::endl;
+  if (use_depth_) {
+    image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
+    depth_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
+
+    // Subscribe to image topic
+    image_sub_sync_->subscribe(
+      this,
+      base_topic_name,
+      transport,
+      best_effort_qos ?
+      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+
+    // Subscribe to depth topic
+    depth_sub_sync_->subscribe(
+      this,
+      "/depth_distances",
+      transport,
+      best_effort_qos ?
+      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+
+    // Initialize synchronizer
+    sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
+      depth_sync_policy(10),
+      *image_sub_sync_,
+      *depth_sub_sync_);
+    sync_->registerCallback(&ObjectDetector::sync_callback, this);
+  } else {
+    image_sub_ = std::make_shared<image_transport::Subscriber>(
+      image_transport::create_subscription(
+        this,
+        base_topic_name,
+        std::bind(
+          &ObjectDetector::image_callback,
+          this,
+          std::placeholders::_1),
+        transport,
+        best_effort_qos ?
+        dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile()));
+  }
+
+  RCLCPP_WARN(this->get_logger(), "Object Detector ACTIVATED");
 }
 
 /**
- * @brief Inference class main method to run inference on given image.
- *
- * @param input cv::Mat with input image.
- * @return std::vector with Detection objects found in the image.
+ * @brief Deactivates the detector.
  */
-std::vector<Detection> Inference::run_inference(cv::Mat& input)
+void ObjectDetector::deactivate_detector()
 {
-  cv::Mat image_input = input.clone();
+  // Join worker thread
+  running_.store(false, std::memory_order_release);
+  sem_post(&sem1_);
+  sem_post(&sem2_);
+  worker_.join();
 
-  cv::Mat blob;
-  cv::dnn::blobFromImage(image_input, blob, 1.0/255.0, model_shape, cv::Scalar(), true, false);
-  net.setInput(blob);
-
-  std::vector<cv::Mat> outputs;
-  net.forward(outputs, net.getUnconnectedOutLayersNames());
-
-  // Detection
-  cv::Mat boxes_output = outputs[0];
-
-  int boxes_rows = boxes_output.size[2];
-  int boxes_dims = boxes_output.size[1];
-
-  boxes_output = boxes_output.reshape(1, boxes_dims).t();
-
-  float x_factor = image_input.cols / model_shape.width;
-  float y_factor = image_input.rows / model_shape.height;
-
-  std::vector<int> class_ids;
-  std::vector<float> confidences;
-  std::vector<cv::Rect> boxes;
-  std::vector<int> indices;
-
-  float* data = (float*) boxes_output.data;
-
-  for (int i = 0; i < boxes_rows; i++)
-  {
-    cv::Mat scores(1, classes.size(), CV_32FC1, data + 4);
-
-    cv::Point class_id;
-    double max_class_score;
-    minMaxLoc(scores, 0, &max_class_score, 0, &class_id);
-
-    if (max_class_score > *score_threshold)
-    {
-      indices.push_back(i);
-
-      // // limit values between 0 and image size
-      float cx = std::max(std::min(data[0], model_shape.width), 0.0f);
-      float cy = std::max(std::min(data[1], model_shape.height), 0.0f);
-      float w = std::max(std::min(data[2], model_shape.width), 0.0f);
-      float h = std::max(std::min(data[3], model_shape.height), 0.0f);
-
-      int left = int((cx - w/2) * x_factor);
-      int top = int((cy - h/2) * y_factor);
-      int width = int(w * x_factor);
-      int height = int(h * y_factor);
-
-      // limit left, top, width, height values between 0 and image size
-      left = std::max(std::min(left, image_input.cols), 0);
-      top = std::max(std::min(top, image_input.rows), 0);
-      if (left + width > image_input.cols)
-        width = image_input.cols - left;
-      if (top + height > image_input.rows)
-        height = image_input.rows - top;
-
-      boxes.push_back(cv::Rect(left, top, width, height));
-      confidences.push_back(max_class_score);
-      class_ids.push_back(class_id.x);
-    }
-
-    data += boxes_dims;
+  // Shutdown subscriptions
+  if (use_depth_) {
+    sync_.reset();
+    image_sub_sync_.reset();
+    depth_sub_sync_.reset();
+  } else {
+    image_sub_.reset();
   }
 
-  std::vector<int> nms_result;
-  std::vector<int> nms_result_to_skip;
-  cv::dnn::NMSBoxes(boxes, confidences, *score_threshold, *nms_threshold, nms_result);
-  if (nms_result.empty()) return {};
-
-  size_t nms_result_size = nms_result.size();
-
-  std::vector<Detection> detections;
-  for (size_t i = 0; i < nms_result.size(); i++)
-  {
-    int idx = nms_result[i];
-    int class_id = class_ids[idx];
-    std::string class_name = classes[class_id];
-
-    if (std::find(classes_targets.begin(), classes_targets.end(), class_name) == classes_targets.end())
-    {
-      nms_result_to_skip.push_back(i);
-      nms_result_size--;
-      continue;
-    }
-
-    Detection result;
-    result.box = boxes[idx];
-    result.class_id = class_id;
-    result.class_name = class_name;
-    result.color = colors[result.class_id];
-    result.confidence = confidences[idx];
-
-    detections.push_back(result);
-  }
-
-  if (nms_result_size == 0) return detections;
-
-  // Segmentation
-  if (outputs.size() > 1)
-  {
-    cv::Mat masks_output = outputs[1];
-    int mask_proto = masks_output.size[1];
-    int mask_height = masks_output.size[2];
-    int mask_width = masks_output.size[3];
-
-    float x_factor_segm = x_factor * model_shape.width / mask_width;
-    float y_factor_segm = y_factor * model_shape.height / mask_height;
-
-    data = (float*) boxes_output.data;
-    cv::Mat masks_prediction(mask_proto, 0, CV_32FC1);
-    for (size_t i = 0; i < nms_result.size(); i++)
-    {
-      if (std::find(nms_result_to_skip.begin(), nms_result_to_skip.end(), i) != nms_result_to_skip.end())
-        continue;
-
-      int idx = nms_result[i];
-      cv::Mat masks_temp(mask_proto, 1, CV_32FC1, data + indices[idx] * boxes_dims + 4 + classes.size());
-      cv::hconcat(masks_prediction, masks_temp, masks_prediction);
-    }
-
-    masks_output = masks_output.reshape(1, {mask_proto, mask_height*mask_width}).t();
-
-    cv::gemm(masks_output, masks_prediction, 1, cv::noArray(), 0, masks_output);
-
-    // Compute sigmoid of masks_output
-    cv::exp(-masks_output, masks_output);
-    cv::add(1.0, masks_output, masks_output);
-    cv::divide(1.0, masks_output, masks_output);
-
-    masks_output = masks_output.reshape((int) nms_result_size, {mask_height, mask_width});
-
-    // // plot mask using opencv
-    // cv::imshow("mask", masks_output);
-    // cv::waitKey(1);
-
-    std::vector<cv::Mat> images((int) nms_result_size);
-    cv::split(masks_output, images);
-
-    for (size_t i = 0; i < detections.size(); i++)
-    {
-      Detection& detection = detections[i];
-      int x1 = detection.box.x;
-      int y1 = detection.box.y;
-      int x2 = detection.box.x + detection.box.width;
-      int y2 = detection.box.y + detection.box.height;
-
-      int scale_x1 = x1 / x_factor_segm;
-      int scale_y1 = y1 / y_factor_segm;
-      int scale_x2 = x2 / x_factor_segm;
-      int scale_y2 = y2 / y_factor_segm;
-
-      cv::Mat crop_mask = images[i].colRange(scale_x1, scale_x2).rowRange(scale_y1, scale_y2);
-
-      cv::resize(crop_mask, crop_mask, cv::Size(x2 - x1, y2 - y1));
-
-      cv::Size kernel_size = cv::Size(int(x_factor_segm) % 2 ? int(x_factor_segm) : int(x_factor_segm) + 1,
-                                      int(y_factor_segm) % 2 ? int(y_factor_segm) : int(y_factor_segm) + 1);
-      cv::GaussianBlur(crop_mask, crop_mask, kernel_size, 0);
-      cv::threshold(crop_mask, crop_mask, 0.5, 1, cv::THRESH_BINARY);
-
-      detection.mask = crop_mask;
-    }
-  }
-  return detections;
+  // Destroy semaphores
+  sem_destroy(&sem1_);
+  sem_destroy(&sem2_);
 }
 
-/**
- * @brief Load ONNX network from file.
- */
-void Inference::load_onnx_network()
-{
-  net = cv::dnn::readNetFromONNX(model_path);
-
-  if (cuda_enabled)
-  {
-    std::cout << "\nRunning on CUDA" << std::endl;
-    net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
-    net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
-  }
-  else
-  {
-    std::cout << "\nRunning on CPU" << std::endl;
-    net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-    net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
-  }
-}
-
-} // namespace ObjectDetector
+} // namespace object_detector

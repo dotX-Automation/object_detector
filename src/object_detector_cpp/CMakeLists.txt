@@ -29,14 +29,14 @@ find_package(geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(OpenCV 4.7.0 REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(Threads REQUIRED)
 find_package(params_manager REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(theora_wrappers REQUIRED)
+find_package(Threads REQUIRED)
 find_package(vision_msgs REQUIRED)
 
 # Generate parameters source code
@@ -56,27 +56,27 @@ target_compile_definitions(object_detector PRIVATE COMPOSITION_BUILDING_DLL)
 target_include_directories(object_detector PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(object_detector PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(object_detector PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
 target_link_libraries(object_detector
   ${OpenCV_LIBS}
   Threads::Threads)
 ament_target_dependencies(object_detector
-  "dua_app_management"
-  "dua_interfaces"
-  "dua_node"
-  "dua_qos_cpp"
-  "geometry_msgs"
-  "image_transport"
-  "message_filters"
-  "params_manager"
-  "rclcpp_components"
-  "rclcpp"
-  "sensor_msgs"
-  "std_msgs"
-  "std_srvs"
-  "theora_wrappers"
-  "vision_msgs")
-rclcpp_components_register_nodes(object_detector "ObjectDetector::ObjectDetectorNode")
+  dua_app_management
+  dua_interfaces
+  dua_node
+  dua_qos_cpp
+  geometry_msgs
+  image_transport
+  message_filters
+  params_manager
+  rclcpp_components
+  rclcpp
+  sensor_msgs
+  std_msgs
+  std_srvs
+  theora_wrappers
+  vision_msgs)
+rclcpp_components_register_nodes(object_detector "object_detector::ObjectDetector")
 
 # Object Detector standalone application
 add_executable(object_detector_app
@@ -84,11 +84,11 @@ add_executable(object_detector_app
 target_include_directories(object_detector_app PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(object_detector_app PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(object_detector_app PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
 target_link_libraries(object_detector_app object_detector)
 ament_target_dependencies(object_detector_app
-  "dua_app_management"
-  "rclcpp")
+  dua_app_management
+  rclcpp)
 
 # Install Object Detector component
 install(TARGETS object_detector
@@ -118,8 +118,5 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-# Make sure that the library path is exported even if the library itself is not
-ament_environment_hooks("${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
 
 ament_package()
