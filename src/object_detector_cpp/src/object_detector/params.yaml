@@ -68,7 +68,7 @@ params:
   model_shape:
     type: integer_array
     default_value: [0]
-    min_value: 0
+    min_value: 1
     max_value: 10000
     step: 1
     description: "Model input dimensions."

@@ -88,6 +88,11 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
   int cols = input.cols;
   int rows = input.rows;
 
+  if (cols == 0 || rows == 0) {
+    if (verbose_) std::cout << "Image size is 0" << std::endl;
+    return {};
+  }
+
   cv::Mat blob;
   cv::dnn::blobFromImage(input, blob, 1.0 / 255.0, model_shape_, cv::Scalar(), true, false);
   net_.setInput(blob);
@@ -197,6 +202,11 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
     int mask_proto = masks_output.size[1];
     int mask_height = masks_output.size[2];
     int mask_width = masks_output.size[3];
+
+    if (mask_proto == 0 || mask_height == 0 || mask_width == 0) {
+      if (verbose_) std::cout << "Mask size is 0" << std::endl;
+      return detections;
+    }
 
     float x_factor_segm = x_factor * model_shape_.width / float(mask_width);
     float y_factor_segm = y_factor * model_shape_.height / float(mask_height);
