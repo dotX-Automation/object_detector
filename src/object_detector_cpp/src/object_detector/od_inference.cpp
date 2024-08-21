@@ -85,10 +85,11 @@ Inference::Inference(
  */
 std::vector<Detection> Inference::run_inference(cv::Mat & input)
 {
-  cv::Mat image_input = input.clone();
+  int cols = input.cols;
+  int rows = input.rows;
 
   cv::Mat blob;
-  cv::dnn::blobFromImage(image_input, blob, 1.0 / 255.0, model_shape_, cv::Scalar(), true, false);
+  cv::dnn::blobFromImage(input, blob, 1.0 / 255.0, model_shape_, cv::Scalar(), true, false);
   net_.setInput(blob);
 
   std::vector<cv::Mat> outputs;
@@ -102,8 +103,8 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
 
   boxes_output = boxes_output.reshape(1, boxes_dims).t();
 
-  float x_factor = float(image_input.cols) / model_shape_.width;
-  float y_factor = float(image_input.rows) / model_shape_.height;
+  float x_factor = float(cols) / model_shape_.width;
+  float y_factor = float(rows) / model_shape_.height;
 
   std::vector<int> class_ids;
   std::vector<float> confidences;
@@ -134,13 +135,13 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
       int height = int(h * y_factor);
 
       // Limit left, top, width, height values between 0 and image size
-      left = std::max(std::min(left, image_input.cols), 0);
-      top = std::max(std::min(top, image_input.rows), 0);
-      if (left + width > image_input.cols) {
-        width = image_input.cols - left;
+      left = std::max(std::min(left, cols), 0);
+      top = std::max(std::min(top, rows), 0);
+      if (left + width > cols) {
+        width = cols - left;
       }
-      if (top + height > image_input.rows) {
-        height = image_input.rows - top;
+      if (top + height > rows) {
+        height = rows - top;
       }
 
       boxes.push_back(cv::Rect(left, top, width, height));
