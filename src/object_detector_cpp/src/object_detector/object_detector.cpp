@@ -181,16 +181,6 @@ void ObjectDetector::worker_thread_routine()
         // Draw detection box
         cv::rectangle(image, box, color, 2);
 
-        // Draw segmentation mask
-        if (!mask.empty()) {
-          cv::resize(mask, mask, box.size());
-          mask.convertTo(mask, CV_8UC3, 255);
-          cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
-
-          cv::Mat roi = image(box);
-          cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
-        }
-
         // Prepare detection message
         Detection2D detection_msg{};
         detection_msg.set__header(header);
@@ -204,33 +194,32 @@ void ObjectDetector::worker_thread_routine()
           // Get bounding box rectangle from depth image
           cv::Mat depth_roi = depth(box);
 
-          double sum = 0.0;
-          int count = 0;
+          double sum;
+          int count;
 
           if (mask.empty()) {
             if (verbose_) {
               std::cout << "Mask empty" << std::endl;
             }
-            for (int i = 0; i < depth_roi.rows; i++) {
-              for (int j = 0; j < depth_roi.cols; j++) {
-                if (!isnan(depth_roi.at<double>(i, j))) {
-                  sum += depth_roi.at<double>(i, j);
-                  count++;
-                }
-              }
-            }
+
+            count = cv::countNonZero(depth_roi);
+            sum = cv::sum(depth_roi)[0];
           } else {
             if (verbose_) {
               std::cout << "Mask not empty" << std::endl;
             }
-            for (int i = 0; i < depth_roi.rows; i++) {
-              for (int j = 0; j < depth_roi.cols; j++) {
-                if (!isnan(depth_roi.at<double>(i, j)) && mask.at<uchar>(i, j) > 0) {
-                  sum += depth_roi.at<double>(i, j);
-                  count++;
-                }
-              }
-            }
+
+            depth_roi.copyTo(depth_roi, mask);
+            count = cv::countNonZero(depth_roi);
+            sum = cv::sum(depth_roi)[0];
+
+            // Draw segmentation mask
+            cv::resize(mask, mask, box.size());
+            mask.convertTo(mask, CV_8UC3, 255);
+            cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
+
+            cv::Mat roi = image(box);
+            cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
           }
           if (count == 0) {
             continue;
@@ -242,21 +231,18 @@ void ObjectDetector::worker_thread_routine()
           int x2 = box.x + box.width;
           int y2 = box.y + box.height;
 
-          if (verbose_) {
-            std::cout << "x1: " << x1 << ", y1: " << y1 << std::endl;
-            std::cout << "x2: " << x2 << ", y2: " << y2 << std::endl;
-            std::cout << "Image size: " << image.size().width << ", " << image.size().height <<
-              std::endl;
-          }
-
           double w = image.size().width;
           double h = image.size().height;
           double u = (x1 + x2 - w) / 2.0 / w;
           double v = (y1 + y2 - h) / 2.0 / h;
 
           if (verbose_) {
-            std::cout << "u: " << u << ", v: " << v << std::endl;
+            std::cout << "sum: " << sum << std::endl;
+            std::cout << "count: " << count << std::endl;
             std::cout << "mean: " << mean << std::endl;
+            std::cout << "x1: " << x1 << ", y1: " << y1 << std::endl;
+            std::cout << "x2: " << x2 << ", y2: " << y2 << std::endl;
+            std::cout << "u: " << u << ", v: " << v << std::endl;
           }
 
           double Z = mean / sqrt(u * u + v * v + 1);
