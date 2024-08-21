@@ -69,7 +69,7 @@ void ObjectDetector::sync_callback(
   cv::Mat depth = cv::Mat(
     depth_msg->height,
     depth_msg->width,
-    CV_64FC1,
+    CV_32FC1,
     (void *)(depth_msg->data.data()));
 
   // Pass data to worker thread
