@@ -50,7 +50,6 @@
 #include <message_filters/sync_policies/exact_time.h>
 
 #include <image_transport/image_transport.hpp>
-#include <image_transport/subscriber.hpp>
 #include <image_transport/subscriber_filter.hpp>
 
 #include <sensor_msgs/image_encodings.hpp>
@@ -58,6 +57,7 @@
 #include <theora_wrappers/publisher.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
@@ -73,7 +73,7 @@ using namespace vision_msgs::msg;
 
 using namespace std_srvs::srv;
 
-typedef message_filters::sync_policies::ExactTime<Image, Image> depth_sync_policy;
+typedef message_filters::sync_policies::ExactTime<Image, CameraInfo, Image> depth_sync_policy;
 
 namespace object_detector
 {
@@ -101,13 +101,14 @@ private:
   /* Subscriptions. */
   std::shared_ptr<image_transport::SubscriberFilter> image_sub_sync_;
   std::shared_ptr<image_transport::SubscriberFilter> depth_sub_sync_;
+  std::shared_ptr<message_filters::Subscriber<CameraInfo>> camera_info_sub_sync_;
   std::shared_ptr<image_transport::Subscriber> image_sub_;
-  std::shared_ptr<image_transport::Subscriber> depth_sub_;
 
   /* Topic subscriptions callbacks. */
   void image_callback(const Image::ConstSharedPtr & image_msg);
   void sync_callback(
     const Image::ConstSharedPtr & image_msg,
+    const CameraInfo::ConstSharedPtr & camera_info_msg,
     const Image::ConstSharedPtr & depth_msg);
 
   /* Topic publishers. */
@@ -128,6 +129,7 @@ private:
     SetBool::Response::SharedPtr resp);
 
   /* Data buffers. */
+  CameraInfo camera_info_{};
   cv::Mat camera_frame_{}, new_frame_{}, new_depth_{};
   std_msgs::msg::Header last_header_{};
 
@@ -152,6 +154,7 @@ private:
   /* Synchronization primitives for internal update operations. */
   std::atomic<bool> running_{false};
   sem_t sem1_, sem2_;
+  bool got_camera_info_ = false;
 
   /* Threads. */
   std::thread worker_;

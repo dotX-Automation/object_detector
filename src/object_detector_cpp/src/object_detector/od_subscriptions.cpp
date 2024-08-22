@@ -52,12 +52,20 @@ void ObjectDetector::image_callback(const Image::ConstSharedPtr & msg)
  * @brief Parses a new image with depth data.
  *
  * @param image_msg Image message to parse.
+ * @param camera_info_msg Camera info message to parse.
  * @param depth_msg Depth image message to parse.
  */
 void ObjectDetector::sync_callback(
   const Image::ConstSharedPtr & image_msg,
+  const CameraInfo::ConstSharedPtr & camera_info_msg,
   const Image::ConstSharedPtr & depth_msg)
 {
+  // Register camera_info data
+  if (!got_camera_info_) {
+    camera_info_ = *camera_info_msg;
+    got_camera_info_ = true;
+  }
+
   // Convert image_msg to OpenCV image
   cv::Mat frame = cv::Mat(
     image_msg->height,

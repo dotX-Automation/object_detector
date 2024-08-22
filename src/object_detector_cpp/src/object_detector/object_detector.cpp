@@ -156,7 +156,13 @@ void ObjectDetector::worker_thread_routine()
     // Return if no target is detected
     if (detections == 0 && !always_publish_stream_) {continue;}
 
-    if (detections != 0) {
+    if (detections != 0 && got_camera_info_) {
+      // Get camera intrinsic parameters
+      double fx = camera_info_.k[0];
+      double fy = camera_info_.k[4];
+      double cx = camera_info_.k[2];
+      double cy = camera_info_.k[5];
+
       Detection2DArray detections_msg{};
       detections_msg.set__header(header);
 
@@ -197,7 +203,9 @@ void ObjectDetector::worker_thread_routine()
           double sum;
           int count;
 
+          // Compute distance between object and camera as the mean of the depth values in a ROI
           if (mask.empty()) {
+            // No mask provided: ROI is the whole bounding box
             if (verbose_) {
               std::cout << "Mask empty" << std::endl;
             }
@@ -205,6 +213,7 @@ void ObjectDetector::worker_thread_routine()
             count = cv::countNonZero(depth_roi);
             sum = cv::sum(depth_roi)[0];
           } else {
+            // Mask provided: ROI is the intersection between the bounding box and the mask
             if (verbose_) {
               std::cout << "Mask not empty" << std::endl;
             }
@@ -226,28 +235,41 @@ void ObjectDetector::worker_thread_routine()
           }
           double mean = sum / double(count);
 
-          int x1 = box.x;
-          int y1 = box.y;
-          int x2 = box.x + box.width;
-          int y2 = box.y + box.height;
-
-          double w = image.size().width;
-          double h = image.size().height;
-          double u = (x1 + x2 - w) / 2.0 / w;
-          double v = (y1 + y2 - h) / 2.0 / h;
+          // Compute centroid image coordinates
+          double u = box.x + (box.width / 2.0);
+          double v = box.y + (box.height / 2.0);
 
           if (verbose_) {
             std::cout << "sum: " << sum << std::endl;
             std::cout << "count: " << count << std::endl;
             std::cout << "mean: " << mean << std::endl;
-            std::cout << "x1: " << x1 << ", y1: " << y1 << std::endl;
-            std::cout << "x2: " << x2 << ", y2: " << y2 << std::endl;
+            std::cout << "x1: " << box.x << ", y1: " << box.y << std::endl;
             std::cout << "u: " << u << ", v: " << v << std::endl;
           }
 
-          double Z = mean / sqrt(u * u + v * v + 1);
-          double Y = Z * v;
-          double X = Z * u;
+          /**
+           * Compute 3D coordinates of the centroid in the camera frame using camera intrinsic parameters
+           * Rationale: we have camera intrinsic parameters and centroid image coordinates
+           * but we don't have "depth", i.e. Z coordinate of the centroid in the camera frame.
+           * Instead, we have the distance from the camera, so we can compute Z using that and changing variables.
+           * Then, we can compute X and Y using Z and all the other data.
+           * Computation is split into multiple steps for clarity.
+           */
+          double add_x_num = (u - cx) * (u - cx);
+          double add_x_den = fx * fx;
+          double add_y_num = (v - cy) * (v - cy);
+          double add_y_den = fy * fy;
+          double add_x = add_x_num / add_x_den;
+          double add_y = add_y_num / add_y_den;
+          double Z = mean / sqrt(add_x + add_y + 1);
+          double X = (u - cx) * Z / fx;
+          double Y = (v - cy) * Z / fy;
+
+          if (verbose_) {
+            std::cout << "X: " << X << std::endl;
+            std::cout << "Y: " << Y << std::endl;
+            std::cout << "Z: " << Z << std::endl;
+          }
 
           result.pose.pose.position.set__x(X);
           result.pose.pose.position.set__y(Y);
