@@ -118,15 +118,15 @@ void ObjectDetector::activate_detector()
     camera_info_sub_sync_ = std::make_shared<message_filters::Subscriber<CameraInfo>>(
       this,
       camera_info_topic_name,
-      dua_qos::BestEffort::get_datum_qos().get_rmw_qos_profile());
+      best_effort_qos ?
+      dua_qos::BestEffort::get_datum_qos().get_rmw_qos_profile() :
+      dua_qos::Reliable::get_datum_qos().get_rmw_qos_profile());
 
     // Subscribe to depth topic
     depth_sub_sync_->subscribe(
       this,
       "/depth_distances",
-      transport,
-      best_effort_qos ?
-      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+      "raw",
       dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
 
     // Initialize synchronizer

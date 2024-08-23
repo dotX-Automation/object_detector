@@ -156,7 +156,7 @@ void ObjectDetector::worker_thread_routine()
     // Return if no target is detected
     if (detections == 0 && !always_publish_stream_) {continue;}
 
-    if (detections != 0 && got_camera_info_) {
+    if (detections != 0 && (!use_depth_ || got_camera_info_)) {
       // Get camera intrinsic parameters
       double fx = camera_info_.k[0];
       double fy = camera_info_.k[4];
