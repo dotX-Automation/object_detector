@@ -108,8 +108,8 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
 
   boxes_output = boxes_output.reshape(1, boxes_dims).t();
 
-  float x_factor = float(cols) / model_shape_.width;
-  float y_factor = float(rows) / model_shape_.height;
+  float x_factor = static_cast<float>(cols) / model_shape_.width;
+  float y_factor = static_cast<float>(rows) / model_shape_.height;
 
   std::vector<int> class_ids;
   std::vector<float> confidences;
@@ -208,8 +208,8 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
       return detections;
     }
 
-    float x_factor_segm = x_factor * model_shape_.width / float(mask_width);
-    float y_factor_segm = y_factor * model_shape_.height / float(mask_height);
+    float x_factor_segm = x_factor * model_shape_.width / static_cast<float>(mask_width);
+    float y_factor_segm = y_factor * model_shape_.height / static_cast<float>(mask_height);
 
     data = (float *)boxes_output.data;
     cv::Mat masks_prediction(mask_proto, 0, CV_32FC1);
