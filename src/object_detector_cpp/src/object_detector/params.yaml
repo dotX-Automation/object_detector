@@ -118,10 +118,18 @@ params:
   use_depth:
     type: bool
     default_value: false
-    description: "Whether to use depth data to estimate object position."
+    description: "Whether to use depth map data to estimate object position."
     constraints: "Cannot be changed."
     read_only: true
     var_name: use_depth_
+
+  use_distances:
+    type: bool
+    default_value: false
+    description: "Whether to use distance data to estimate object position."
+    constraints: "Cannot be changed."
+    read_only: true
+    var_name: use_distances_
 
   use_gpu:
     type: bool

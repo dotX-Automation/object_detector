@@ -22,8 +22,6 @@
  * limitations under the License.
  */
 
-#include <stdexcept>
-
 #include <pthread.h>
 #include <sched.h>
 
@@ -95,7 +93,7 @@ void ObjectDetector::activate_detector()
   bool best_effort_qos = this->get_parameter("subscriber_best_effort_qos").as_bool();
   int64_t depth = this->get_parameter("subscriber_depth").as_int();
 
-  if (use_depth_) {
+  if (use_distances_) {
     // Initialize camera_info topic name and data
     size_t pos = base_topic_name.find_last_of("/");
     std::string camera_info_topic_name = base_topic_name.substr(0, pos) + "/camera_info";
@@ -103,7 +101,7 @@ void ObjectDetector::activate_detector()
 
     // Initialize image_transport subscribers
     image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
-    depth_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
+    distances_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
 
     // Subscribe to image topic
     image_sub_sync_->subscribe(
@@ -123,19 +121,46 @@ void ObjectDetector::activate_detector()
       dua_qos::Reliable::get_datum_qos().get_rmw_qos_profile());
 
     // Subscribe to depth topic
-    depth_sub_sync_->subscribe(
+    distances_sub_sync_->subscribe(
       this,
       "/depth_distances",
       "raw",
       dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
 
     // Initialize synchronizer
-    sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
-      depth_sync_policy(5),
+    distances_sync_ = std::make_shared<message_filters::Synchronizer<distances_sync_policy>>(
+      distances_sync_policy(depth),
       *image_sub_sync_,
       *camera_info_sub_sync_,
-      *depth_sub_sync_);
-    sync_->registerCallback(&ObjectDetector::sync_callback, this);
+      *distances_sub_sync_);
+    distances_sync_->registerCallback(&ObjectDetector::distances_sync_callback, this);
+  } else if (use_depth_) {
+    // Initialize image_transport subscribers
+    image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
+
+    // Subscribe to image topic
+    image_sub_sync_->subscribe(
+      this,
+      base_topic_name,
+      transport,
+      best_effort_qos ?
+      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+
+    // Subscribe to depth topic
+    depth_map_sub_sync_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(
+      this,
+      "/depth_map",
+      best_effort_qos ?
+      dua_qos::BestEffort::get_scan_qos(depth).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_scan_qos(depth).get_rmw_qos_profile());
+
+    // Initialize synchronizer
+    depth_sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
+      depth_sync_policy(depth),
+      *image_sub_sync_,
+      *depth_map_sub_sync_);
+    depth_sync_->registerCallback(&ObjectDetector::depth_sync_callback, this);
   } else {
     image_sub_ = std::make_shared<image_transport::Subscriber>(
       image_transport::create_subscription(
@@ -166,11 +191,15 @@ void ObjectDetector::deactivate_detector()
   worker_.join();
 
   // Shutdown subscriptions and cleanup data
-  if (use_depth_) {
-    sync_.reset();
+  if (use_distances_) {
+    distances_sync_.reset();
     image_sub_sync_.reset();
-    depth_sub_sync_.reset();
+    distances_sub_sync_.reset();
     camera_info_sub_sync_.reset();
+  } else if (use_depth_) {
+    depth_sync_.reset();
+    image_sub_sync_.reset();
+    depth_map_sub_sync_.reset();
   } else {
     image_sub_.reset();
   }

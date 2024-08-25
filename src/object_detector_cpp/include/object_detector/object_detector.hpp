@@ -29,6 +29,7 @@
 #include <atomic>
 #include <iterator>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -53,12 +54,14 @@
 #include <image_transport/subscriber_filter.hpp>
 
 #include <sensor_msgs/image_encodings.hpp>
+#include <sensor_msgs/point_cloud2_iterator.hpp>
 
 #include <theora_wrappers/publisher.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
@@ -73,7 +76,8 @@ using namespace vision_msgs::msg;
 
 using namespace std_srvs::srv;
 
-typedef message_filters::sync_policies::ExactTime<Image, CameraInfo, Image> depth_sync_policy;
+typedef message_filters::sync_policies::ExactTime<Image, CameraInfo, Image> distances_sync_policy;
+typedef message_filters::sync_policies::ExactTime<Image, PointCloud2> depth_sync_policy;
 
 namespace object_detector
 {
@@ -95,21 +99,26 @@ private:
   void init_services();
   void init_subscriptions();
 
-  /* Synchronizer. */
-  std::shared_ptr<message_filters::Synchronizer<depth_sync_policy>> sync_;
+  /* Synchronizers. */
+  std::shared_ptr<message_filters::Synchronizer<distances_sync_policy>> distances_sync_;
+  std::shared_ptr<message_filters::Synchronizer<depth_sync_policy>> depth_sync_;
 
   /* Subscriptions. */
   std::shared_ptr<image_transport::SubscriberFilter> image_sub_sync_;
-  std::shared_ptr<image_transport::SubscriberFilter> depth_sub_sync_;
+  std::shared_ptr<image_transport::SubscriberFilter> distances_sub_sync_;
   std::shared_ptr<message_filters::Subscriber<CameraInfo>> camera_info_sub_sync_;
+  std::shared_ptr<message_filters::Subscriber<PointCloud2>> depth_map_sub_sync_;
   std::shared_ptr<image_transport::Subscriber> image_sub_;
 
   /* Topic subscriptions callbacks. */
   void image_callback(const Image::ConstSharedPtr & image_msg);
-  void sync_callback(
+  void distances_sync_callback(
     const Image::ConstSharedPtr & image_msg,
     const CameraInfo::ConstSharedPtr & camera_info_msg,
-    const Image::ConstSharedPtr & depth_msg);
+    const Image::ConstSharedPtr & distances_msg);
+  void depth_sync_callback(
+    const Image::ConstSharedPtr & image_msg,
+    const PointCloud2::ConstSharedPtr & depth_msg);
 
   /* Topic publishers. */
   rclcpp::Publisher<Detection2DArray>::SharedPtr detections_pub_;
@@ -130,8 +139,9 @@ private:
 
   /* Data buffers. */
   CameraInfo camera_info_{};
-  cv::Mat camera_frame_{}, new_frame_{}, new_depth_{};
+  cv::Mat camera_frame_{}, new_frame_{}, new_distances_{};
   std_msgs::msg::Header last_header_{};
+  PointCloud2 new_depth_map_{};
 
   /* Detection engines. */
   Inference detector_;
@@ -147,6 +157,7 @@ private:
   std::vector<int64_t> model_shape_ = {};
   bool use_coco_classes_ = false;
   bool use_depth_ = false;
+  bool use_distances_ = false;
   bool use_gpu_ = false;
   bool verbose_ = false;
   int64_t worker_cpu_ = 0;
