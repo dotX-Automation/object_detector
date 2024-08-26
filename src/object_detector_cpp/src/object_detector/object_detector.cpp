@@ -188,6 +188,10 @@ void ObjectDetector::worker_thread_routine()
           cv::Rect box = detection.box;
           cv::Scalar color = detection.color;
           cv::Mat mask = detection.mask;
+          cv::Point2f mask_centroid = detection.mask_centroid;
+
+          int box_cx = box.x + static_cast<int>(box.width / 2.0);
+          int box_cy = box.y + static_cast<int>(box.height / 2.0);
 
           // Draw detection box
           cv::rectangle(image, box, color, 2);
@@ -208,9 +212,6 @@ void ObjectDetector::worker_thread_routine()
             double cx = camera_info_.k[2];
             double cy = camera_info_.k[5];
 
-            // Get bounding box rectangle from distances image
-            cv::Mat distances_roi = distances(box);
-
             double sum;
             int count;
 
@@ -218,18 +219,46 @@ void ObjectDetector::worker_thread_routine()
             if (mask.empty()) {
               // No mask provided: ROI is the whole bounding box
               if (verbose_) {
-                std::cout << "Mask empty" << std::endl;
+                std::cout << "Mask not available" << std::endl;
               }
+
+              // Get square roi around centroid
+              cv::Rect centroid_square_roi = cv::Rect(
+                box_cx - distance_centroid_radius_,
+                box_cy - distance_centroid_radius_,
+                2 * distance_centroid_radius_,
+                2 * distance_centroid_radius_);
+              // Get bounding box square from distances image
+              cv::Mat distances_roi = distances(centroid_square_roi);
 
               count = cv::countNonZero(distances_roi);
               sum = cv::sum(distances_roi)[0];
+
+              cv::circle(image, cv::Point2f(box_cx, box_cy), 5, cv::Scalar(0, 0, 255), -1);
+
+              cv::rectangle(image, centroid_square_roi, cv::Scalar(0, 255, 0), 2);
             } else {
               // Mask provided: ROI is the intersection between the bounding box and the mask
               if (verbose_) {
-                std::cout << "Mask not empty" << std::endl;
+                std::cout << "Mask available" << std::endl;
               }
 
-              distances_roi.copyTo(distances_roi, mask);
+              // Get square roi around centroid
+              cv::Rect centroid_square_roi = cv::Rect(
+                mask_centroid.x - distance_centroid_radius_,
+                mask_centroid.y - distance_centroid_radius_,
+                2 * distance_centroid_radius_,
+                2 * distance_centroid_radius_);
+
+              cv::Rect centroid_local = cv::Rect(
+                mask_centroid.x - box.x - distance_centroid_radius_,
+                mask_centroid.y - box.y - distance_centroid_radius_,
+                2 * distance_centroid_radius_,
+                2 * distance_centroid_radius_);
+
+              // Get bounding box square from distances image
+              cv::Mat distances_roi = distances(centroid_square_roi);
+              distances_roi.copyTo(distances_roi, mask(centroid_local));
               count = cv::countNonZero(distances_roi);
               sum = cv::sum(distances_roi)[0];
 
@@ -242,6 +271,8 @@ void ObjectDetector::worker_thread_routine()
               cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
 
               cv::circle(image, detection.mask_centroid, 5, cv::Scalar(0, 0, 255), -1);
+
+              cv::rectangle(image, centroid_square_roi, cv::Scalar(0, 255, 0), 2);
             }
             if (count == 0) {
               continue;
@@ -249,8 +280,8 @@ void ObjectDetector::worker_thread_routine()
             double mean = sum / double(count);
 
             // Compute centroid image coordinates
-            double u = box.x + (box.width / 2.0);
-            double v = box.y + (box.height / 2.0);
+            double u = static_cast<double>(box_cx);
+            double v = static_cast<double>(box_cy);
 
             if (verbose_) {
               std::cout << "sum: " << sum << std::endl;
@@ -333,6 +364,16 @@ void ObjectDetector::worker_thread_routine()
             result.pose.pose.position.set__z(Z);
           } else {
             result.pose.covariance[0] = -1.0;
+
+            if (!mask.empty()) {
+              // Draw segmentation mask and centroid
+              cv::resize(mask, mask, box.size());
+              mask.convertTo(mask, CV_8UC3, 255);
+              cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
+
+              cv::Mat roi = image(box);
+              cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
+            }
           }
           detection_msg.results.push_back(result);
 
