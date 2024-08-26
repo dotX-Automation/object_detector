@@ -267,6 +267,13 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
       cv::GaussianBlur(crop_mask, crop_mask, kernel_size, 0);
       cv::threshold(crop_mask, crop_mask, 0.5, 1, cv::THRESH_BINARY);
 
+      // Compute mask centroid
+      cv::Moments m = cv::moments(crop_mask, true);
+      cv::Point2f centroid = cv::Point2f(
+        m.m10 / m.m00 + x1,
+        m.m01 / m.m00 + y1);
+      detection.mask_centroid = centroid;
+
       // Convert crop_mask to 8UC1
       crop_mask.convertTo(crop_mask, CV_8UC1, 255);
 

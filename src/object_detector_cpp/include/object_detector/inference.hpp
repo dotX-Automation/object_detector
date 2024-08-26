@@ -48,6 +48,7 @@ struct Detection
   cv::Scalar color{};
   float confidence{0.0};
   cv::Mat mask{};
+  cv::Point2f mask_centroid{};
 };
 
 /**

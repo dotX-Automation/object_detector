@@ -233,13 +233,15 @@ void ObjectDetector::worker_thread_routine()
               count = cv::countNonZero(distances_roi);
               sum = cv::sum(distances_roi)[0];
 
-              // Draw segmentation mask
+              // Draw segmentation mask and centroid
               cv::resize(mask, mask, box.size());
               mask.convertTo(mask, CV_8UC3, 255);
               cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
 
               cv::Mat roi = image(box);
               cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
+
+              cv::circle(image, detection.mask_centroid, 5, cv::Scalar(0, 0, 255), -1);
             }
             if (count == 0) {
               continue;
