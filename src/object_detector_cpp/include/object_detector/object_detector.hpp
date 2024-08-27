@@ -151,7 +151,6 @@ private:
   bool autostart_ = false;
   std::vector<std::string> classes_ = {};
   std::vector<std::string> classes_targets_ = {};
-  int64_t distance_centroid_radius_ = 0;
   double model_NMS_threshold_ = 0.0;
   std::string model_path_ = "";
   double model_score_threshold_ = 0.0;

@@ -61,7 +61,7 @@ def generate_launch_description():
         log_cmd=True,
         parameters=[cf],
         remappings=[
-            ('/depth_distances', '/depth_distances'),
+            ('/depth_distances', '/zed/zed_driver/depth_distances'),
             ('/depth_map', '/depth_map')
         ]
     )

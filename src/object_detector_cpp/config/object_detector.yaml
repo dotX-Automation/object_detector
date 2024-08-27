@@ -7,9 +7,8 @@
     classes_targets:
       - person
       - bottle
-    distance_centroid_radius: 10
     model_NMS_threshold: 0.5
-    model_path: /home/neo/workspace/logs/yolov8n-seg.onnx
+    model_path: /home/neo/workspace/logs/yolov8n.onnx
     model_score_threshold: 0.5
     model_shape: [640, 480]
     subscriber_base_topic_name: /zed/zed_driver/left/sd/image_rect_color
@@ -17,7 +16,7 @@
     subscriber_depth: 5
     subscriber_transport: raw
     use_coco_classes: true
-    use_distances: false
+    use_distances: true
     use_depth: false
     use_gpu: true
     verbose: true

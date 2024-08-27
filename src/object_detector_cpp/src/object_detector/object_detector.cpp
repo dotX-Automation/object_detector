@@ -190,8 +190,8 @@ void ObjectDetector::worker_thread_routine()
           cv::Mat mask = detection.mask;
           cv::Point2f mask_centroid = detection.mask_centroid;
 
-          int box_cx = box.x + static_cast<int>(box.width / 2.0);
-          int box_cy = box.y + static_cast<int>(box.height / 2.0);
+          float box_cx = box.x + box.width / 2.0f;
+          float box_cy = box.y + box.height / 2.0f;
 
           // Draw detection box
           cv::rectangle(image, box, color, 2);
@@ -212,6 +212,9 @@ void ObjectDetector::worker_thread_routine()
             double cx = camera_info_.k[2];
             double cy = camera_info_.k[5];
 
+            // Get bounding box rectangle from distances image
+            cv::Mat distances_roi = distances(box);
+
             double sum;
             int count;
 
@@ -222,43 +225,17 @@ void ObjectDetector::worker_thread_routine()
                 std::cout << "Mask not available" << std::endl;
               }
 
-              // Get square roi around centroid
-              cv::Rect centroid_square_roi = cv::Rect(
-                box_cx - distance_centroid_radius_,
-                box_cy - distance_centroid_radius_,
-                2 * distance_centroid_radius_,
-                2 * distance_centroid_radius_);
-              // Get bounding box square from distances image
-              cv::Mat distances_roi = distances(centroid_square_roi);
-
               count = cv::countNonZero(distances_roi);
               sum = cv::sum(distances_roi)[0];
 
               cv::circle(image, cv::Point2f(box_cx, box_cy), 5, cv::Scalar(0, 0, 255), -1);
-
-              cv::rectangle(image, centroid_square_roi, cv::Scalar(0, 255, 0), 2);
             } else {
               // Mask provided: ROI is the intersection between the bounding box and the mask
               if (verbose_) {
                 std::cout << "Mask available" << std::endl;
               }
 
-              // Get square roi around centroid
-              cv::Rect centroid_square_roi = cv::Rect(
-                mask_centroid.x - distance_centroid_radius_,
-                mask_centroid.y - distance_centroid_radius_,
-                2 * distance_centroid_radius_,
-                2 * distance_centroid_radius_);
-
-              cv::Rect centroid_local = cv::Rect(
-                mask_centroid.x - box.x - distance_centroid_radius_,
-                mask_centroid.y - box.y - distance_centroid_radius_,
-                2 * distance_centroid_radius_,
-                2 * distance_centroid_radius_);
-
-              // Get bounding box square from distances image
-              cv::Mat distances_roi = distances(centroid_square_roi);
-              distances_roi.copyTo(distances_roi, mask(centroid_local));
+              distances_roi.copyTo(distances_roi, mask);
               count = cv::countNonZero(distances_roi);
               sum = cv::sum(distances_roi)[0];
 
@@ -270,9 +247,7 @@ void ObjectDetector::worker_thread_routine()
               cv::Mat roi = image(box);
               cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
 
-              cv::circle(image, detection.mask_centroid, 5, cv::Scalar(0, 0, 255), -1);
-
-              cv::rectangle(image, centroid_square_roi, cv::Scalar(0, 255, 0), 2);
+              cv::circle(image, mask_centroid, 5, cv::Scalar(0, 0, 255), -1);
             }
             if (count == 0) {
               continue;
@@ -375,11 +350,19 @@ void ObjectDetector::worker_thread_routine()
               cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
             }
           }
+
           detection_msg.results.push_back(result);
 
-          // Set bounding box
-          detection_msg.bbox.center.position.set__x(detection.box.x + detection.box.width / 2);
-          detection_msg.bbox.center.position.set__y(detection.box.y + detection.box.height / 2);
+          if (mask.empty()) {
+            // Set bounding box center as rectangle center
+            detection_msg.bbox.center.position.set__x(box_cx);
+            detection_msg.bbox.center.position.set__y(box_cy);
+          } else {
+            // Set bounding box center as mask centroid
+            detection_msg.bbox.center.position.set__x(mask_centroid.x);
+            detection_msg.bbox.center.position.set__y(mask_centroid.y);
+          }
+
           detection_msg.bbox.set__size_x(detection.box.width);
           detection_msg.bbox.set__size_y(detection.box.height);
 

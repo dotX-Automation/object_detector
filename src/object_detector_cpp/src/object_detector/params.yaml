@@ -35,17 +35,6 @@ params:
     read_only: true
     var_name: classes_targets_
 
-  distance_centroid_radius:
-    type: integer
-    default_value: 0
-    min_value: 0
-    max_value: 100
-    step: 1
-    description: "Radius around bbox center or mask centroid to compute mean distance."
-    constraints: "Can be changed."
-    read_only: false
-    var_name: distance_centroid_radius_
-
   model_NMS_threshold:
     type: double
     default_value: 0.1
