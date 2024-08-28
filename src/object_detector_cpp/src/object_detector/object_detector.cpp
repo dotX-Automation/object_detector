@@ -164,7 +164,9 @@ void ObjectDetector::worker_thread_routine()
     int detections = output.size();
 
     // Return if no target is detected
-    if (detections == 0 && !always_publish_stream_) {continue;}
+    if (detections == 0 && !always_publish_stream_) {
+      continue;
+    }
 
     if (detections != 0) {
       if (!use_distances_ || got_camera_info_) {
@@ -205,6 +207,23 @@ void ObjectDetector::worker_thread_routine()
           result.hypothesis.set__class_id(detection.class_name);
           result.hypothesis.set__score(detection.confidence);
 
+          // Compute and set target centroid
+          double u;
+          double v;
+          if (mask.empty()) {
+            // Set bounding box center as rectangle center
+            u = box_cx;
+            v = box_cy;
+            detection_msg.bbox.center.position.set__x(box_cx);
+            detection_msg.bbox.center.position.set__y(box_cy);
+          } else {
+            // Set bounding box center as mask centroid
+            u = mask_centroid.x;
+            v = mask_centroid.y;
+            detection_msg.bbox.center.position.set__x(mask_centroid.x);
+            detection_msg.bbox.center.position.set__y(mask_centroid.y);
+          }
+
           if (distances.data != nullptr) {
             // Get camera intrinsic parameters
             double fx = camera_info_.k[0];
@@ -228,6 +247,7 @@ void ObjectDetector::worker_thread_routine()
               count = cv::countNonZero(distances_roi);
               sum = cv::sum(distances_roi)[0];
 
+              // Draw bbox centroid
               cv::circle(image, cv::Point2f(box_cx, box_cy), 5, cv::Scalar(0, 0, 255), -1);
             } else {
               // Mask provided: ROI is the intersection between the bounding box and the mask
@@ -253,10 +273,6 @@ void ObjectDetector::worker_thread_routine()
               continue;
             }
             double mean = sum / double(count);
-
-            // Compute centroid image coordinates
-            double u = static_cast<double>(box_cx);
-            double v = static_cast<double>(box_cy);
 
             if (verbose_) {
               std::cout << "sum: " << sum << std::endl;
@@ -295,18 +311,19 @@ void ObjectDetector::worker_thread_routine()
             result.pose.pose.position.set__z(Z);
           } else if (use_depth_) {
             if (!mask.empty()) {
-              // Draw segmentation mask
+              // Draw segmentation mask and centroid
               cv::resize(mask, mask, box.size());
               mask.convertTo(mask, CV_8UC3, 255);
               cvtColor(mask, mask, cv::COLOR_GRAY2BGR);
 
               cv::Mat roi = image(box);
               cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
-            }
 
-            // Compute centroid image coordinates
-            double u = box.x + (box.width / 2.0);
-            double v = box.y + (box.height / 2.0);
+              cv::circle(image, mask_centroid, 5, cv::Scalar(0, 0, 255), -1);
+            } else {
+              // Draw bbox centroid
+              cv::circle(image, cv::Point2f(box_cx, box_cy), 5, cv::Scalar(0, 0, 255), -1);
+            }
 
             // Get to the centroid in the depth map
             sensor_msgs::PointCloud2Iterator<float> iter_x(depth_map, "x");
@@ -328,6 +345,7 @@ void ObjectDetector::worker_thread_routine()
               std::cout << "X: " << X << std::endl;
               std::cout << "Y: " << Y << std::endl;
               std::cout << "Z: " << Z << std::endl;
+              std::cout << "u: " << u << ", v: " << v << std::endl;
             }
 
             // Discard this sample if coordinates are invalid (assumes a filled depth map)
@@ -348,20 +366,15 @@ void ObjectDetector::worker_thread_routine()
 
               cv::Mat roi = image(box);
               cv::addWeighted(roi, 1.0, mask, 0.3, 0.0, roi);
+
+              cv::circle(image, mask_centroid, 5, cv::Scalar(0, 0, 255), -1);
+            } else {
+              // Draw bbox centroid
+              cv::circle(image, cv::Point2f(box_cx, box_cy), 5, cv::Scalar(0, 0, 255), -1);
             }
           }
 
           detection_msg.results.push_back(result);
-
-          if (mask.empty()) {
-            // Set bounding box center as rectangle center
-            detection_msg.bbox.center.position.set__x(box_cx);
-            detection_msg.bbox.center.position.set__y(box_cy);
-          } else {
-            // Set bounding box center as mask centroid
-            detection_msg.bbox.center.position.set__x(mask_centroid.x);
-            detection_msg.bbox.center.position.set__y(mask_centroid.y);
-          }
 
           detection_msg.bbox.set__size_x(detection.box.width);
           detection_msg.bbox.set__size_y(detection.box.height);
@@ -375,7 +388,7 @@ void ObjectDetector::worker_thread_routine()
     }
 
     // Publish processed image
-    camera_frame_ = image; // doesn't copy image data, but sets data type...
+    camera_frame_ = image; // Doesn't copy image data but sets data type
 
     // Create processed image message
     Image::SharedPtr processed_image_msg = frame_to_msg(camera_frame_);

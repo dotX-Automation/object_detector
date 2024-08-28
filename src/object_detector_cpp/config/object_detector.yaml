@@ -6,12 +6,11 @@
       - drone
     classes_targets:
       - person
-      - bottle
     model_NMS_threshold: 0.5
-    model_path: /home/neo/workspace/logs/yolov8n.onnx
+    model_path: /home/neo/workspace/logs/yolov8s-seg.onnx
     model_score_threshold: 0.5
     model_shape: [640, 480]
-    subscriber_base_topic_name: /zed/zed_driver/left/sd/image_rect_color
+    subscriber_base_topic_name: /camera/image_rect_color
     subscriber_best_effort_qos: false
     subscriber_depth: 5
     subscriber_transport: raw
