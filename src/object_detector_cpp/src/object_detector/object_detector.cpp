@@ -117,6 +117,11 @@ void ObjectDetector::init_publishers()
     "~/detections",
     dua_qos::Reliable::get_datum_qos());
 
+  // visual_targets
+  visual_targets_pub_ = this->create_publisher<VisualTargets>(
+    "~/visual_targets",
+    dua_qos::Reliable::get_datum_qos());
+
   // detections_stream
   stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
@@ -164,7 +169,7 @@ void ObjectDetector::worker_thread_routine()
     int detections = output.size();
 
     // Return if no target is detected
-    if (detections == 0 && !always_publish_stream_) {
+    if (detections > 0 && !always_publish_stream_) {
       continue;
     }
 
@@ -395,6 +400,12 @@ void ObjectDetector::worker_thread_routine()
 
         // Publish detections
         detections_pub_->publish(detections_msg);
+
+        // Publish visual targets
+        VisualTargets visual_targets_msg{};
+        visual_targets_msg.set__targets(detections_msg);
+        visual_targets_msg.set__image(*frame_to_msg(image));
+        visual_targets_pub_->publish(visual_targets_msg);
       }
     }
 

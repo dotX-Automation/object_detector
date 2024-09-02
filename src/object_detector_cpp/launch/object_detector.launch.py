@@ -62,7 +62,9 @@ def generate_launch_description():
         parameters=[cf],
         remappings=[
             ('/depth_distances', '/depth_distances'),
-            ('/depth_map', '/depth_map')
+            ('/depth_map', '/depth_map'),
+            ('/object_detector/detections', '/object_detector/detections'),
+            ('/object_detector/visual_targets', '/object_detector/visual_targets')
         ]
     )
 

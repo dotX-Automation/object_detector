@@ -58,6 +58,7 @@
 
 #include <theora_wrappers/publisher.hpp>
 
+#include <dua_interfaces/msg/visual_targets.hpp>
 #include <geometry_msgs/msg/pose.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -69,6 +70,7 @@
 
 #include <object_detector/inference.hpp>
 
+using namespace dua_interfaces::msg;
 using namespace geometry_msgs::msg;
 using namespace sensor_msgs::msg;
 using namespace std_msgs::msg;
@@ -122,6 +124,7 @@ private:
 
   /* Topic publishers. */
   rclcpp::Publisher<Detection2DArray>::SharedPtr detections_pub_;
+  rclcpp::Publisher<VisualTargets>::SharedPtr visual_targets_pub_;
 
   /* Theora stream publishers. */
   std::shared_ptr<TheoraWrappers::Publisher> stream_pub_;
