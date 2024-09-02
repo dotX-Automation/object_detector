@@ -134,6 +134,9 @@ void ObjectDetector::activate_detector()
       *camera_info_sub_sync_,
       *distances_sub_sync_);
     distances_sync_->registerCallback(&ObjectDetector::distances_sync_callback, this);
+
+    is_rectified_ = this->get_parameter("subscriber_base_topic_name").as_string().find("rect") !=
+      std::string::npos;
   } else if (use_depth_) {
     // Initialize image_transport subscribers
     image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();

@@ -142,6 +142,7 @@ private:
   cv::Mat camera_frame_{}, new_frame_{}, new_distances_{};
   std_msgs::msg::Header last_header_{};
   PointCloud2 new_depth_map_{};
+  bool is_rectified_ = false;
 
   /* Detection engines. */
   Inference detector_;

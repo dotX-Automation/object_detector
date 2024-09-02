@@ -226,10 +226,21 @@ void ObjectDetector::worker_thread_routine()
 
           if (distances.data != nullptr) {
             // Get camera intrinsic parameters
-            double fx = camera_info_.k[0];
-            double fy = camera_info_.k[4];
-            double cx = camera_info_.k[2];
-            double cy = camera_info_.k[5];
+            double fx = 0.0;
+            double fy = 0.0;
+            double cx = 0.0;
+            double cy = 0.0;
+            if (!is_rectified_) {
+              fx = camera_info_.k[0];
+              fy = camera_info_.k[4];
+              cx = camera_info_.k[2];
+              cy = camera_info_.k[5];
+            } else {
+              fx = camera_info_.p[0];
+              fy = camera_info_.p[5];
+              cx = camera_info_.p[2];
+              cy = camera_info_.p[6];
+            }
 
             // Get bounding box rectangle from distances image
             cv::Mat distances_roi = distances(box);
