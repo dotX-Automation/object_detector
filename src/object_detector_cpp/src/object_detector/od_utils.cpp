@@ -88,95 +88,102 @@ void ObjectDetector::activate_detector()
     }
   }
 
-  std::string base_topic_name = this->get_parameter("subscriber_base_topic_name").as_string();
-  std::string transport = this->get_parameter("subscriber_transport").as_string();
-  bool best_effort_qos = this->get_parameter("subscriber_best_effort_qos").as_bool();
-  int64_t depth = this->get_parameter("subscriber_depth").as_int();
+  // Activate sensors
+  for (auto & sensor : sensors_) {
+    std::string base_topic_name = sensor->subscriber_base_topic_name;
+    std::string transport = sensor->subscriber_transport;
+    bool best_effort_qos = sensor->subscriber_best_effort_qos;
+    int64_t depth = sensor->subscriber_depth;
+    std::string depth_topic = sensor->depth_topic;
+    std::string distances_topic = sensor->distances_topic;
 
-  if (use_distances_) {
-    // Initialize camera_info topic name and data
-    size_t pos = base_topic_name.find_last_of("/");
-    std::string camera_info_topic_name = base_topic_name.substr(0, pos) + "/camera_info";
-    got_camera_info_ = false;
+    sensor->sem1 = &sem1_;
+    sensor->sem2 = &sem2_;
 
-    // Initialize image_transport subscribers
-    image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
-    distances_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
+    if (sensor->use_distances) {
+      // Initialize camera_info topic name and data
+      size_t pos = base_topic_name.find_last_of("/");
+      std::string camera_info_topic_name = base_topic_name.substr(0, pos) + "/camera_info";
+      sensor->got_camera_info = false;
 
-    // Subscribe to image topic
-    image_sub_sync_->subscribe(
-      this,
-      base_topic_name,
-      transport,
-      best_effort_qos ?
-      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
-      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+      // Initialize image_transport subscribers
+      sensor->image_sub_sync = std::make_shared<image_transport::SubscriberFilter>();
+      sensor->distances_sub_sync = std::make_shared<image_transport::SubscriberFilter>();
 
-    // Subscribe to camera_info topic
-    camera_info_sub_sync_ = std::make_shared<message_filters::Subscriber<CameraInfo>>(
-      this,
-      camera_info_topic_name,
-      best_effort_qos ?
-      dua_qos::BestEffort::get_datum_qos().get_rmw_qos_profile() :
-      dua_qos::Reliable::get_datum_qos().get_rmw_qos_profile());
-
-    // Subscribe to depth topic
-    distances_sub_sync_->subscribe(
-      this,
-      "/depth_distances",
-      "raw",
-      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
-
-    // Initialize synchronizer
-    distances_sync_ = std::make_shared<message_filters::Synchronizer<distances_sync_policy>>(
-      distances_sync_policy(depth),
-      *image_sub_sync_,
-      *camera_info_sub_sync_,
-      *distances_sub_sync_);
-    distances_sync_->registerCallback(&ObjectDetector::distances_sync_callback, this);
-
-    is_rectified_ = this->get_parameter("subscriber_base_topic_name").as_string().find("rect") !=
-      std::string::npos;
-  } else if (use_depth_) {
-    // Initialize image_transport subscribers
-    image_sub_sync_ = std::make_shared<image_transport::SubscriberFilter>();
-
-    // Subscribe to image topic
-    image_sub_sync_->subscribe(
-      this,
-      base_topic_name,
-      transport,
-      best_effort_qos ?
-      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
-      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
-
-    // Subscribe to depth topic
-    depth_map_sub_sync_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(
-      this,
-      "/depth_map",
-      best_effort_qos ?
-      dua_qos::BestEffort::get_scan_qos(depth).get_rmw_qos_profile() :
-      dua_qos::Reliable::get_scan_qos(depth).get_rmw_qos_profile());
-
-    // Initialize synchronizer
-    depth_sync_ = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
-      depth_sync_policy(depth),
-      *image_sub_sync_,
-      *depth_map_sub_sync_);
-    depth_sync_->registerCallback(&ObjectDetector::depth_sync_callback, this);
-  } else {
-    image_sub_ = std::make_shared<image_transport::Subscriber>(
-      image_transport::create_subscription(
+      // Subscribe to image topic
+      sensor->image_sub_sync->subscribe(
         this,
         base_topic_name,
-        std::bind(
-          &ObjectDetector::image_callback,
-          this,
-          std::placeholders::_1),
         transport,
         best_effort_qos ?
         dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile()));
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+
+      // Subscribe to camera_info topic
+      sensor->camera_info_sub_sync = std::make_shared<message_filters::Subscriber<CameraInfo>>(
+        this,
+        camera_info_topic_name,
+        best_effort_qos ?
+        dua_qos::BestEffort::get_datum_qos().get_rmw_qos_profile() :
+        dua_qos::Reliable::get_datum_qos().get_rmw_qos_profile());
+
+      // Subscribe to distances topic
+      sensor->distances_sub_sync->subscribe(
+        this,
+        distances_topic,
+        "raw",
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+
+      // Initialize synchronizer
+      sensor->distances_sync = std::make_shared<message_filters::Synchronizer<distances_sync_policy>>(
+        distances_sync_policy(depth),
+        *(sensor->image_sub_sync),
+        *(sensor->camera_info_sub_sync),
+        *(sensor->distances_sub_sync));
+      sensor->distances_sync->registerCallback(&Sensor::distances_sync_callback, sensor.get());
+
+      sensor->is_rectified = base_topic_name.find("rect") != std::string::npos;
+    } else if (sensor->use_depth) {
+      // Initialize image_transport subscribers
+      sensor->image_sub_sync = std::make_shared<image_transport::SubscriberFilter>();
+
+      // Subscribe to image topic
+      sensor->image_sub_sync->subscribe(
+        this,
+        base_topic_name,
+        transport,
+        best_effort_qos ?
+        dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+
+      // Subscribe to depth topic
+      sensor->depth_map_sub_sync = std::make_shared<message_filters::Subscriber<PointCloud2>>(
+        this,
+        depth_topic,
+        best_effort_qos ?
+        dua_qos::BestEffort::get_scan_qos(depth).get_rmw_qos_profile() :
+        dua_qos::Reliable::get_scan_qos(depth).get_rmw_qos_profile());
+
+      // Initialize synchronizer
+      sensor->depth_sync = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
+        depth_sync_policy(depth),
+        *(sensor->image_sub_sync),
+        *(sensor->depth_map_sub_sync));
+      sensor->depth_sync->registerCallback(&Sensor::depth_sync_callback, sensor.get());
+    } else {
+      sensor->image_sub = std::make_shared<image_transport::Subscriber>(
+        image_transport::create_subscription(
+          this,
+          base_topic_name,
+          std::bind(
+            &Sensor::image_callback,
+            sensor.get(),
+            std::placeholders::_1),
+          transport,
+          best_effort_qos ?
+          dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+          dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile()));
+    }
   }
 
   RCLCPP_WARN(this->get_logger(), "Object Detector ACTIVATED");
@@ -194,17 +201,19 @@ void ObjectDetector::deactivate_detector()
   worker_.join();
 
   // Shutdown subscriptions and cleanup data
-  if (use_distances_) {
-    distances_sync_.reset();
-    image_sub_sync_.reset();
-    distances_sub_sync_.reset();
-    camera_info_sub_sync_.reset();
-  } else if (use_depth_) {
-    depth_sync_.reset();
-    image_sub_sync_.reset();
-    depth_map_sub_sync_.reset();
-  } else {
-    image_sub_.reset();
+  for (auto & sensor : sensors_) {
+    if (sensor->use_distances) {
+      sensor->distances_sync.reset();
+      sensor->image_sub_sync.reset();
+      sensor->distances_sub_sync.reset();
+      sensor->camera_info_sub_sync.reset();
+    } else if (sensor->use_depth) {
+      sensor->depth_sync.reset();
+      sensor->image_sub_sync.reset();
+      sensor->depth_map_sub_sync.reset();
+    } else {
+      sensor->image_sub.reset();
+    }
   }
 
   // Destroy semaphores

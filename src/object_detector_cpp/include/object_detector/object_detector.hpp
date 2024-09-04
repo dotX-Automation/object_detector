@@ -85,32 +85,32 @@ namespace object_detector
 {
 
 /**
- * Object detection node.
+ * Embeds data of a sensor used in batch mode.
  */
-class ObjectDetector : public dua_node::NodeBase
+class Sensor
 {
 public:
-  ObjectDetector(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions());
-  ~ObjectDetector();
+  Sensor();
+  ~Sensor();
 
-private:
-  /* Node initialization routines. */
-  void init_inference();
-  void init_parameters();
-  void init_publishers();
-  void init_services();
-  void init_subscriptions();
+  /* Topic names. */
+  std::string depth_topic = "";
+  std::string distances_topic = "";
+  std::string detection_output_topic = "";
+  std::string detection_visual_output_topic = "";
+  std::string detection_stream_topic = "";
+  std::string subscriber_base_topic_name = "";
 
   /* Synchronizers. */
-  std::shared_ptr<message_filters::Synchronizer<distances_sync_policy>> distances_sync_;
-  std::shared_ptr<message_filters::Synchronizer<depth_sync_policy>> depth_sync_;
+  std::shared_ptr<message_filters::Synchronizer<distances_sync_policy>> distances_sync;
+  std::shared_ptr<message_filters::Synchronizer<depth_sync_policy>> depth_sync;
 
-  /* Subscriptions. */
-  std::shared_ptr<image_transport::SubscriberFilter> image_sub_sync_;
-  std::shared_ptr<image_transport::SubscriberFilter> distances_sub_sync_;
-  std::shared_ptr<message_filters::Subscriber<CameraInfo>> camera_info_sub_sync_;
-  std::shared_ptr<message_filters::Subscriber<PointCloud2>> depth_map_sub_sync_;
-  std::shared_ptr<image_transport::Subscriber> image_sub_;
+  /* Topic subscriptions. */
+  std::shared_ptr<image_transport::SubscriberFilter> image_sub_sync;
+  std::shared_ptr<image_transport::SubscriberFilter> distances_sub_sync;
+  std::shared_ptr<message_filters::Subscriber<CameraInfo>> camera_info_sub_sync;
+  std::shared_ptr<message_filters::Subscriber<PointCloud2>> depth_map_sub_sync;
+  std::shared_ptr<image_transport::Subscriber> image_sub;
 
   /* Topic subscriptions callbacks. */
   void image_callback(const Image::ConstSharedPtr & image_msg);
@@ -123,14 +123,49 @@ private:
     const PointCloud2::ConstSharedPtr & depth_msg);
 
   /* Topic publishers. */
-  rclcpp::Publisher<Detection2DArray>::SharedPtr detections_pub_;
-  rclcpp::Publisher<VisualTargets>::SharedPtr visual_targets_pub_;
+  rclcpp::Publisher<Detection2DArray>::SharedPtr detections_pub;
+  rclcpp::Publisher<VisualTargets>::SharedPtr visual_targets_pub;
 
   /* Theora stream publishers. */
-  std::shared_ptr<TheoraWrappers::Publisher> stream_pub_;
+  std::shared_ptr<TheoraWrappers::Publisher> stream_pub;
 
-  /* Service servers callback groups. */
-  rclcpp::CallbackGroup::SharedPtr enable_cgroup_;
+  /* Data buffers and state variables. */
+  bool subscriber_best_effort_qos = false;
+  bool use_depth = false;
+  bool use_distances = false;
+  int64_t subscriber_depth = 0L;
+  std::string subscriber_transport = "";
+  bool is_rectified = false;
+  bool got_camera_info = false;
+  CameraInfo camera_info{};
+  rclcpp::Node * node_ptr = nullptr;
+
+  /* Pointers to global data buffers and their synchronization primitives. */
+  Sensor ** curr_sensor_ptr = nullptr;
+  std::shared_ptr<cv::Mat> camera_frame;
+  std::shared_ptr<cv::Mat> new_frame;
+  std::shared_ptr<cv::Mat> new_distances;
+  Header::SharedPtr last_header;
+  PointCloud2::SharedPtr new_depth_map;
+  sem_t * sem1 = nullptr;
+  sem_t * sem2 = nullptr;
+};
+
+/**
+ * Object detection node.
+ */
+class ObjectDetector : public dua_node::NodeBase
+{
+public:
+  ObjectDetector(const rclcpp::NodeOptions & node_options = rclcpp::NodeOptions());
+  ~ObjectDetector();
+
+private:
+  /* Node initialization routines. */
+  void init_inference();
+  void init_parameters();
+  void init_services();
+  void init_subscriptions();
 
   /* Service servers. */
   rclcpp::Service<SetBool>::SharedPtr enable_server_;
@@ -141,11 +176,13 @@ private:
     SetBool::Response::SharedPtr resp);
 
   /* Data buffers. */
-  CameraInfo camera_info_{};
-  cv::Mat camera_frame_{}, new_frame_{}, new_distances_{};
-  std_msgs::msg::Header last_header_{};
-  PointCloud2 new_depth_map_{};
-  bool is_rectified_ = false;
+  std::shared_ptr<cv::Mat> camera_frame_, new_frame_, new_distances_;
+  Header::SharedPtr last_header_;
+  PointCloud2::SharedPtr new_depth_map_;
+
+  /* Sensors. */
+  std::vector<std::shared_ptr<Sensor>> sensors_;
+  Sensor * curr_sensor_ = nullptr;
 
   /* Detection engines. */
   Inference detector_;
@@ -160,8 +197,6 @@ private:
   double model_score_threshold_ = 0.0;
   std::vector<int64_t> model_shape_ = {};
   bool use_coco_classes_ = false;
-  bool use_depth_ = false;
-  bool use_distances_ = false;
   bool use_gpu_ = false;
   bool verbose_ = false;
   int64_t worker_cpu_ = 0;
@@ -169,7 +204,6 @@ private:
   /* Synchronization primitives for internal update operations. */
   std::atomic<bool> running_{false};
   sem_t sem1_, sem2_;
-  bool got_camera_info_ = false;
 
   /* Threads. */
   std::thread worker_;

@@ -21,7 +21,8 @@ params:
 
   classes:
     type: string_array
-    default_value: [""]
+    default_value:
+      - ''
     description: "Names of classes that the model will detect."
     constraints: "Only used when use_coco_dataset is false, cannot be changed."
     read_only: true
@@ -29,11 +30,52 @@ params:
 
   classes_targets:
     type: string_array
-    default_value: [""]
+    default_value:
+      - ''
     description: "Class names of the targets to detect."
     constraints: "Cannot be changed."
     read_only: true
     var_name: classes_targets_
+
+  detection_depth_topics:
+    type: string_array
+    default_value:
+      - ''
+    description: "Names of the input topics to subscribe to for depth map data."
+    constraints: "Must match corresponding input topics and other parameters, fill with empty strings if necessary."
+    read_only: true
+
+  detection_distances_topics:
+    type: string_array
+    default_value:
+      - ''
+    description: "Names of the input topics to subscribe to for distance data."
+    constraints: "Must match corresponding input topics and other parameters, fill with empty strings if necessary."
+    read_only: true
+
+  detection_output_topics:
+    type: string_array
+    default_value:
+      - '/detections'
+    description: "Names of the output topics to publish detection results."
+    constraints: "Must match corresponding input topics."
+    read_only: true
+
+  detection_visual_output_topics:
+    type: string_array
+    default_value:
+      - '/detections_visual'
+    description: "Names of the output topics to publish visual detection results."
+    constraints: "Must match corresponding input topics."
+    read_only: true
+
+  detection_stream_topics:
+    type: string_array
+    default_value:
+      - '/detections_stream'
+    description: "Names of the output topics to publish detection video feed."
+    constraints: "Must match corresponding input topics."
+    read_only: true
 
   model_NMS_threshold:
     type: double
@@ -77,33 +119,37 @@ params:
     var_name: model_shape_
 
   subscriber_base_topic_name:
-    type: string
-    default_value: ''
+    type: string_array
+    default_value:
+      - ''
     description: "Base name of the input topics to be passed to image_transport APIs."
-    constraints: "Cannot be changed, must be a valid ROS 2 topic family name for image_transport."
+    constraints: "Cannot be changed, must be an array of valid ROS 2 topic family names for image_transport."
     read_only: true
 
   subscriber_best_effort_qos:
-    type: bool
-    default_value: false
+    type: bool_array
+    default_value:
+      - false
     description: "Whether to subscribe to input topics with a best effort QoS."
     constraints: "Cannot be changed."
     read_only: true
 
   subscriber_depth:
-    type: integer
-    default_value: 1
+    type: integer_array
+    default_value:
+      - 1
     min_value: 0
     max_value: 100
     step: 1
-    description: "image_transport subscribers queue depth."
+    description: "image_transport subscribers queue depths."
     constraints: "Cannot be changed."
     read_only: true
 
   subscriber_transport:
-    type: string
-    default_value: raw
-    description: "Transport type to use with image_transport."
+    type: string_array
+    default_value:
+      - raw
+    description: "Transport types to use with image_transport."
     constraints: "Cannot be changed."
     read_only: true
 
@@ -116,20 +162,20 @@ params:
     var_name: use_coco_classes_
 
   use_depth:
-    type: bool
-    default_value: false
+    type: bool_array
+    default_value:
+      - false
     description: "Whether to use depth map data to estimate object position."
-    constraints: "Cannot be changed."
+    constraints: "Must match corresponding input topics, checked before use_distances."
     read_only: true
-    var_name: use_depth_
 
   use_distances:
-    type: bool
-    default_value: false
+    type: bool_array
+    default_value:
+      - false
     description: "Whether to use distance data to estimate object position."
-    constraints: "Cannot be changed."
+    constraints: "Must match corresponding input topics, checked after use_depth."
     read_only: true
-    var_name: use_distances_
 
   use_gpu:
     type: bool
@@ -154,6 +200,6 @@ params:
     max_value: 255
     step: 1
     description: "CPU on which the worker thread will be pinned."
-    constraints: "Cannot be changed, -1 disables this policy."
+    constraints: "Cannot be changed, -1 disables this policy, useful when not using GPU."
     read_only: true
     var_name: worker_cpu_

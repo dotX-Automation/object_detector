@@ -59,13 +59,8 @@ def generate_launch_description():
         emulate_tty=True,
         output='both',
         log_cmd=True,
-        parameters=[cf],
-        remappings=[
-            ('/depth_distances', '/depth_distances'),
-            ('/depth_map', '/depth_map'),
-            ('/object_detector/detections', '/object_detector/detections'),
-            ('/object_detector/visual_targets', '/object_detector/visual_targets')
-        ]
+        prefix=['gdbserver localhost:3000'],
+        parameters=[cf]
     )
 
     ld.add_action(node)

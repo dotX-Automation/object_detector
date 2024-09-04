@@ -1,9 +1,9 @@
 /**
- * Object Detector topic subscription callbacks.
+ * Object Detector Sensor implementation.
  *
  * dotX Automation s.r.l. <info@dotxautomation.com>
  *
- * June 4, 2024
+ * September 4, 2024
  */
 
 /**
@@ -28,11 +28,23 @@ namespace object_detector
 {
 
 /**
+ * @brief Constructor.
+ */
+Sensor::Sensor()
+{}
+
+/**
+ * @brief Destructor.
+ */
+Sensor::~Sensor()
+{}
+
+/**
  * @brief Parses a new image message.
  *
  * @param msg Image message to parse.
  */
-void ObjectDetector::image_callback(const Image::ConstSharedPtr & msg)
+void Sensor::image_callback(const Image::ConstSharedPtr & msg)
 {
   // Convert image_msg to OpenCV image
   cv::Mat frame = cv::Mat(
@@ -42,10 +54,11 @@ void ObjectDetector::image_callback(const Image::ConstSharedPtr & msg)
     (void *)(msg->data.data()));
 
   // Pass data to worker thread
-  sem_wait(&sem1_);
-  new_frame_ = frame.clone();
-  last_header_ = msg->header;
-  sem_post(&sem2_);
+  sem_wait(sem1);
+  *new_frame = frame.clone();
+  *last_header = msg->header;
+  *curr_sensor_ptr = this;
+  sem_post(sem2);
 }
 
 /**
@@ -55,21 +68,21 @@ void ObjectDetector::image_callback(const Image::ConstSharedPtr & msg)
  * @param camera_info_msg Camera info message to parse.
  * @param distances_msg Depth image message to parse.
  */
-void ObjectDetector::distances_sync_callback(
+void Sensor::distances_sync_callback(
   const Image::ConstSharedPtr & image_msg,
   const CameraInfo::ConstSharedPtr & camera_info_msg,
   const Image::ConstSharedPtr & distances_msg)
 {
   // Register camera_info data
-  if (!got_camera_info_) {
-    camera_info_ = *camera_info_msg;
-    got_camera_info_ = true;
+  if (!got_camera_info) {
+    camera_info = *camera_info_msg;
+    got_camera_info = true;
   }
 
   // Check that input data dimensions are consistent
   if (image_msg->width != distances_msg->width || image_msg->height != distances_msg->height) {
     RCLCPP_ERROR(
-      this->get_logger(),
+      node_ptr->get_logger(),
       "Input data dimensions are inconsistent: image (%u, %u), distances (%u, %u)",
       image_msg->width, image_msg->height,
       distances_msg->width, distances_msg->height);
@@ -91,11 +104,12 @@ void ObjectDetector::distances_sync_callback(
     (void *)(distances_msg->data.data()));
 
   // Pass data to worker thread
-  sem_wait(&sem1_);
-  new_frame_ = frame.clone();
-  new_distances_ = distances.clone();
-  last_header_ = image_msg->header;
-  sem_post(&sem2_);
+  sem_wait(sem1);
+  *new_frame = frame.clone();
+  *new_distances = distances.clone();
+  *last_header = image_msg->header;
+  *curr_sensor_ptr = this;
+  sem_post(sem2);
 }
 
 /**
@@ -104,14 +118,14 @@ void ObjectDetector::distances_sync_callback(
  * @param image_msg Image message to parse.
  * @param depth_msg Depth map message to parse.
  */
-void ObjectDetector::depth_sync_callback(
+void Sensor::depth_sync_callback(
   const Image::ConstSharedPtr & image_msg,
   const PointCloud2::ConstSharedPtr & depth_msg)
 {
   // Check that input data dimensions are consistent
   if (image_msg->width != depth_msg->width || image_msg->height != depth_msg->height) {
     RCLCPP_ERROR(
-      this->get_logger(),
+      node_ptr->get_logger(),
       "Input data dimensions are inconsistent: image (%u, %u), depth_map (%u, %u)",
       image_msg->width, image_msg->height,
       depth_msg->width, depth_msg->height);
@@ -126,11 +140,12 @@ void ObjectDetector::depth_sync_callback(
     (void *)(image_msg->data.data()));
 
   // Pass data to worker thread
-  sem_wait(&sem1_);
-  new_frame_ = frame.clone();
-  last_header_ = image_msg->header;
-  new_depth_map_ = *depth_msg;
-  sem_post(&sem2_);
+  sem_wait(sem1);
+  *new_frame = frame.clone();
+  *last_header = image_msg->header;
+  *new_depth_map = *depth_msg;
+  *curr_sensor_ptr = this;
+  sem_post(sem2);
 }
 
 } // namespace object_detector
