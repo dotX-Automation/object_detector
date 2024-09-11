@@ -191,7 +191,6 @@ private:
   bool always_publish_stream_ = false;
   bool autostart_ = false;
   std::vector<std::string> classes_ = {};
-  std::vector<std::string> classes_targets_ = {};
   double model_NMS_threshold_ = 0.0;
   std::string model_path_ = "";
   double model_score_threshold_ = 0.0;

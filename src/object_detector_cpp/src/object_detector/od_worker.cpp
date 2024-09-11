@@ -53,7 +53,9 @@ void ObjectDetector::worker_thread_routine()
     sem_post(&sem1_);
 
     // Detect targets
-    std::vector<Detection> output = detector_.run_inference(image);
+    std::vector<Detection> output = detector_.run_inference(
+      image,
+      this->get_parameter("classes_targets").as_string_array());
     int detections = output.size();
 
     // Return if no target is detected

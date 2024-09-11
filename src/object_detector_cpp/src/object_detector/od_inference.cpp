@@ -36,7 +36,6 @@ namespace object_detector
  * @param score_threshold pointer to score threshold value.
  * @param nms_threshold pointer to NMS threshold value.
  * @param classes vector of classes names.
- * @param classes_targets vector of classes names to be found.
  * @param verbose verbose flag.
  */
 Inference::Inference(
@@ -46,7 +45,6 @@ Inference::Inference(
   double * score_threshold,
   double * nms_threshold,
   std::vector<std::string> & classes,
-  std::vector<std::string> & classes_targets,
   bool verbose)
 {
   this->model_path_ = onnx_model_path;
@@ -55,7 +53,6 @@ Inference::Inference(
   this->score_threshold_ = score_threshold;
   this->nms_threshold_ = nms_threshold;
   this->classes_ = classes;
-  this->classes_targets_ = classes_targets;
   this->verbose_ = verbose;
 
   // Create colors vector randomly
@@ -67,23 +64,18 @@ Inference::Inference(
   }
 
   load_onnx_network();
-
-  if (verbose_) {
-    // Print classes names to be found
-    std::cout << "Target classes: " << std::endl;
-    for (std::string target : classes_targets_) {
-      std::cout << "\t- " << target << std::endl;
-    }
-  }
 }
 
 /**
  * @brief Inference class main method to run inference on a given image.
  *
  * @param input cv::Mat with input image.
+ * @param classes_targets Names of classes to detect.
  * @return Vector of objects found in the image.
  */
-std::vector<Detection> Inference::run_inference(cv::Mat & input)
+std::vector<Detection> Inference::run_inference(
+  cv::Mat & input,
+  const std::vector<std::string> & classes_targets)
 {
   int cols = input.cols;
   int rows = input.rows;
@@ -173,9 +165,9 @@ std::vector<Detection> Inference::run_inference(cv::Mat & input)
     std::string class_name = classes_[class_id];
 
     if (std::find(
-        classes_targets_.begin(),
-        classes_targets_.end(),
-        class_name) == classes_targets_.end())
+        classes_targets.begin(),
+        classes_targets.end(),
+        class_name) == classes_targets.end())
     {
       nms_result_to_skip.push_back(i);
       nms_result_size--;

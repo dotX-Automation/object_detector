@@ -65,10 +65,11 @@ public:
     double * score_threshold,
     double * nms_threshold,
     std::vector<std::string> & classes,
-    std::vector<std::string> & classes_targets,
     bool verbose);
 
-  std::vector<Detection> run_inference(cv::Mat & input);
+  std::vector<Detection> run_inference(
+    cv::Mat & input,
+    const std::vector<std::string> & classes_targets);
 
 private:
   void load_onnx_network();
@@ -79,7 +80,6 @@ private:
   bool cuda_enabled_;
 
   std::vector<std::string> classes_;
-  std::vector<std::string> classes_targets_;
 
   std::vector<cv::Scalar> colors_;
 

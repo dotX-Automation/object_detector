@@ -173,7 +173,6 @@ void ObjectDetector::init_inference()
     &model_score_threshold_,
     &model_NMS_threshold_,
     classes_,
-    classes_targets_,
     verbose_);
 }
 

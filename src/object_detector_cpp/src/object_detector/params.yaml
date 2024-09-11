@@ -33,9 +33,8 @@ params:
     default_value:
       - ''
     description: "Class names of the targets to detect."
-    constraints: "Cannot be changed."
-    read_only: true
-    var_name: classes_targets_
+    constraints: ""
+    read_only: false
 
   detection_depth_topics:
     type: string_array
