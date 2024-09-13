@@ -63,6 +63,8 @@ void ObjectDetector::worker_thread_routine()
       continue;
     }
 
+    int thickness = 2 * std::ceil(image.cols / 640.0);
+
     if (detections != 0) {
       if (!sensor->use_distances || sensor->got_camera_info) {
         // I.e. if we are not using distances or we are and we have the camera info
@@ -92,18 +94,7 @@ void ObjectDetector::worker_thread_routine()
           float box_cy = box.y + box.height / 2.0f;
 
           // Draw detection box, label and confidence
-          int thickness = 2*std::ceil(image.cols/640.0);
           cv::rectangle(image, box, color, thickness);
-          std::string label = detection.class_name +
-                              ": " +
-                              std::to_string(detection.confidence).substr(0, 5);
-          cv::putText(image,
-                      label,
-                      cv::Point(box.x + 3, box.y + box.height - 10),
-                      cv::FONT_HERSHEY_SIMPLEX,
-                      0.8*image.cols/640.0,
-                      color,
-                      thickness);
 
           // Prepare detection message
           Detection2D detection_msg{};
@@ -292,6 +283,18 @@ void ObjectDetector::worker_thread_routine()
             }
           }
 
+            // Draw detection label
+            std::string label = detection.class_name +
+                                ": " +
+                                std::to_string(detection.confidence).substr(0, 5);
+            cv::putText(image,
+                        label,
+                        cv::Point(box.x + 3, box.y + box.height - 10),
+                        cv::FONT_HERSHEY_SIMPLEX,
+                        0.8*image.cols/640.0,
+                        color,
+                        thickness);
+
           detection_msg.results.push_back(result);
 
           detection_msg.bbox.set__size_x(detection.box.width);
@@ -309,6 +312,20 @@ void ObjectDetector::worker_thread_routine()
         visual_targets_msg.set__image(*frame_to_msg(image));
         sensor->visual_targets_pub->publish(visual_targets_msg);
       }
+    }
+
+    if (abs(viewfinder_scale_) > 1e-3) {
+      // Draw viewfinder on image
+      cv::Point center(image.cols / 2, image.rows / 2);
+      cv::Scalar color(viewfinder_color_[2], viewfinder_color_[1], viewfinder_color_[0]);
+      int radius = std::min(image.cols, image.rows) * viewfinder_scale_ / 2;
+      int length = radius / 4;
+      cv::line(image, cv::Point(center.x - radius - length, center.y), cv::Point(center.x - radius + length, center.y), color, thickness);  // Sinistra
+      cv::line(image, cv::Point(center.x + radius - length, center.y), cv::Point(center.x + radius + length, center.y), color, thickness);  // Destra
+      cv::line(image, cv::Point(center.x, center.y - radius - length), cv::Point(center.x, center.y - radius + length), color, thickness);  // Sopra
+      cv::line(image, cv::Point(center.x, center.y + radius - length), cv::Point(center.x, center.y + radius + length), color, thickness);  // Sotto
+      cv::circle(image, center, radius, color, thickness + 1);
+      cv::circle(image, center, radius / 20, color, -1);
     }
 
     // Publish processed image

@@ -198,6 +198,8 @@ private:
   bool use_coco_classes_ = false;
   bool use_gpu_ = false;
   bool verbose_ = false;
+  std::vector<int64_t> viewfinder_color_ = {};
+  double viewfinder_scale_ = 0.0;
   int64_t worker_cpu_ = 0;
 
   /* Synchronization primitives for internal update operations. */

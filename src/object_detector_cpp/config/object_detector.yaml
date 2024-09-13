@@ -60,4 +60,6 @@
       - false
     use_gpu: true
     verbose: true
+    viewfinder_color: [255, 0, 0]
+    viewfinder_scale: 0.0
     worker_cpu: -1

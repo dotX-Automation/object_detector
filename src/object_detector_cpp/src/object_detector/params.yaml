@@ -192,6 +192,28 @@ params:
     read_only: false
     var_name: verbose_
 
+  viewfinder_color:
+    type: integer_array
+    default_value: [0, 0, 0]
+    min_value: 0
+    max_value: 255
+    step: 1
+    description: "Color of the viewfinder in RGB."
+    constraints: "Can be changed."
+    read_only: false
+    var_name: viewfinder_color_
+
+  viewfinder_scale:
+    type: double
+    default_value: 1.0
+    min_value: 0.0
+    max_value: 1.0
+    step: 0.0
+    description: "Scale factor for the viewfinder compared to the minimum image dimension."
+    constraints: "Can be changed."
+    read_only: false
+    var_name: viewfinder_scale_
+
   worker_cpu:
     type: integer
     default_value: -1
