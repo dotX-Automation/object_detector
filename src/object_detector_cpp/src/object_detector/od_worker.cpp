@@ -91,8 +91,19 @@ void ObjectDetector::worker_thread_routine()
           float box_cx = box.x + box.width / 2.0f;
           float box_cy = box.y + box.height / 2.0f;
 
-          // Draw detection box
-          cv::rectangle(image, box, color, 2);
+          // Draw detection box, label and confidence
+          int thickness = 2*std::ceil(image.cols/640.0);
+          cv::rectangle(image, box, color, thickness);
+          std::string label = detection.class_name +
+                              ": " +
+                              std::to_string(detection.confidence).substr(0, 5);
+          cv::putText(image,
+                      label,
+                      cv::Point(box.x + 3, box.y + box.height - 10),
+                      cv::FONT_HERSHEY_SIMPLEX,
+                      0.8*image.cols/640.0,
+                      color,
+                      thickness);
 
           // Prepare detection message
           Detection2D detection_msg{};

@@ -5,6 +5,7 @@
     classes:
       - drone
     classes_targets:
+      - 'person'
       - 'potted plant'
       - 'teddy bear'
       - 'traffic light'
@@ -15,35 +16,19 @@
     model_shape: [640, 480]
     detection_depth_topics:
       - ''
-      - ''
-      - ''
     detection_distances_topics:
-      - ''
-      - ''
       - ''
     detection_output_topics:
       - '/found_targets'
-      - ''
-      - ''
     detection_visual_output_topics:
       - '/found_targets/visual'
-      - ''
-      - ''
     detection_stream_topics:
       - '/detector/front'
-      - ''
-      - ''
     subscriber_base_topic_name:
-      - '/camera/image_rect_color'
-      - ''
-      - ''
+      - '/usb_camera/usb_camera_driver/camera/image_color'
     subscriber_best_effort_qos:
       - true
-      - true
-      - true
     subscriber_depth:
-      - 2
-      - 2
       - 2
     subscriber_transport:
       - compressed
@@ -52,11 +37,7 @@
     use_coco_classes: true
     use_depth:
       - false
-      - false
-      - false
     use_distances:
-      - true
-      - false
       - false
     use_gpu: true
     verbose: true
