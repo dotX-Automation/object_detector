@@ -53,10 +53,15 @@ void ObjectDetector::worker_thread_routine()
     sem_post(&sem1_);
 
     // Detect targets
+    auto tic = this->get_clock()->now();
     std::vector<Detection> output = detector_.run_inference(
       image,
       this->get_parameter("classes_targets").as_string_array());
     int detections = output.size();
+    auto toc = this->get_clock()->now();
+    if (verbose_) {
+      RCLCPP_INFO(this->get_logger(), "Inference time: %f ms", (toc - tic).seconds() * 1000);
+    }
 
     // Return if no target is detected
     if (detections > 0 && !always_publish_stream_) {
@@ -320,10 +325,10 @@ void ObjectDetector::worker_thread_routine()
       cv::Scalar color(viewfinder_color_[2], viewfinder_color_[1], viewfinder_color_[0]);
       int radius = std::min(image.cols, image.rows) * viewfinder_scale_ / 2;
       int length = radius / 4;
-      cv::line(image, cv::Point(center.x - radius - length, center.y), cv::Point(center.x - radius + length, center.y), color, thickness);  // Sinistra
-      cv::line(image, cv::Point(center.x + radius - length, center.y), cv::Point(center.x + radius + length, center.y), color, thickness);  // Destra
-      cv::line(image, cv::Point(center.x, center.y - radius - length), cv::Point(center.x, center.y - radius + length), color, thickness);  // Sopra
-      cv::line(image, cv::Point(center.x, center.y + radius - length), cv::Point(center.x, center.y + radius + length), color, thickness);  // Sotto
+      cv::line(image, cv::Point(center.x - radius - length, center.y), cv::Point(center.x - radius + length, center.y), color, thickness);  // Left
+      cv::line(image, cv::Point(center.x + radius - length, center.y), cv::Point(center.x + radius + length, center.y), color, thickness);  // Right
+      cv::line(image, cv::Point(center.x, center.y - radius - length), cv::Point(center.x, center.y - radius + length), color, thickness);  // Top
+      cv::line(image, cv::Point(center.x, center.y + radius - length), cv::Point(center.x, center.y + radius + length), color, thickness);  // Bottom
       cv::circle(image, center, radius, color, thickness + 1);
       cv::circle(image, center, radius / 20, color, -1);
     }

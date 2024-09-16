@@ -199,7 +199,7 @@ params:
     max_value: 255
     step: 1
     description: "Color of the viewfinder in RGB."
-    constraints: "Can be changed."
+    constraints: ""
     read_only: false
     var_name: viewfinder_color_
 
@@ -209,8 +209,8 @@ params:
     min_value: 0.0
     max_value: 1.0
     step: 0.0
-    description: "Scale factor for the viewfinder compared to the minimum image dimension."
-    constraints: "Can be changed."
+    description: "Scale factor for the viewfinder."
+    constraints: "It is compared to the minimum image dimension."
     read_only: false
     var_name: viewfinder_scale_
 

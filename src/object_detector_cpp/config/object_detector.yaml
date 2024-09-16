@@ -9,57 +9,36 @@
       - 'teddy bear'
       - 'traffic light'
       - 'fire hydrant'
+      - 'person'
     model_NMS_threshold: 0.5
-    model_path: /home/neo/workspace/logs/yolov8n-seg.onnx
+    model_path: /home/neo/workspace/logs/yolov8s-seg.onnx
     model_score_threshold: 0.5
     model_shape: [640, 480]
     detection_depth_topics:
       - ''
-      - ''
-      - ''
     detection_distances_topics:
-      - ''
-      - ''
       - ''
     detection_output_topics:
       - '/found_targets'
-      - ''
-      - ''
     detection_visual_output_topics:
       - '/found_targets/visual'
-      - ''
-      - ''
     detection_stream_topics:
       - '/detector/front'
-      - ''
-      - ''
     subscriber_base_topic_name:
-      - '/camera/image_rect_color'
-      - ''
-      - ''
+      - '/camera/color/image_raw'
     subscriber_best_effort_qos:
-      - true
-      - true
-      - true
+      - false
     subscriber_depth:
       - 2
-      - 2
-      - 2
     subscriber_transport:
-      - compressed
-      - ''
-      - ''
+      - raw
     use_coco_classes: true
     use_depth:
       - false
-      - false
-      - false
     use_distances:
-      - true
-      - false
       - false
     use_gpu: true
     verbose: true
-    viewfinder_color: [255, 0, 0]
-    viewfinder_scale: 0.0
+    viewfinder_color: [0, 255, 0]
+    viewfinder_scale: 0.3
     worker_cpu: -1
