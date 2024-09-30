@@ -113,7 +113,7 @@ ObjectDetector::ObjectDetector(const rclcpp::NodeOptions & node_options)
     new_sensor->stream_pub = std::make_shared<TheoraWrappers::Publisher>(
       this,
       new_sensor->detection_stream_topic,
-      dua_qos::BestEffort::get_image_qos().get_rmw_qos_profile());
+      dua_qos::Reliable::get_image_qos().get_rmw_qos_profile());
 
     sensors_.push_back(new_sensor);
   }
