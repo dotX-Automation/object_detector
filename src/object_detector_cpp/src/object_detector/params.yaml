@@ -36,6 +36,16 @@ params:
     constraints: ""
     read_only: false
 
+  colors_seed:
+    type: integer
+    default_value: 42
+    min_value: 1
+    max_value: 1000
+    step: 1
+    description: "Seed for the random color generator."
+    constraints: ""
+    read_only: true
+
   detection_depth_topics:
     type: string_array
     default_value:

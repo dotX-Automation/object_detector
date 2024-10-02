@@ -65,7 +65,8 @@ public:
     double * score_threshold,
     double * nms_threshold,
     std::vector<std::string> & classes,
-    bool verbose);
+    bool verbose,
+    int colors_seed);
 
   std::vector<Detection> run_inference(
     cv::Mat & input,

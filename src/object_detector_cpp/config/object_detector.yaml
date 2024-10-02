@@ -10,6 +10,7 @@
       - 'traffic light'
       - 'fire hydrant'
       - 'person'
+    colors_seed: 42
     model_NMS_threshold: 0.5
     model_path: /home/neo/workspace/logs/yolov8s-seg.onnx
     model_score_threshold: 0.5

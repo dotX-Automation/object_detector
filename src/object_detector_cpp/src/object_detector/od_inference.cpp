@@ -37,6 +37,7 @@ namespace object_detector
  * @param nms_threshold pointer to NMS threshold value.
  * @param classes vector of classes names.
  * @param verbose verbose flag.
+ * @param colors_seed Seed for random colors generation.
  */
 Inference::Inference(
   std::string & onnx_model_path,
@@ -45,7 +46,8 @@ Inference::Inference(
   double * score_threshold,
   double * nms_threshold,
   std::vector<std::string> & classes,
-  bool verbose)
+  bool verbose,
+  int colors_seed)
 {
   this->model_path_ = onnx_model_path;
   this->model_shape_ = model_input_shape;
@@ -56,8 +58,7 @@ Inference::Inference(
   this->verbose_ = verbose;
 
   // Create colors vector randomly
-  int seed = 1;
-  std::mt19937 gen = std::mt19937(seed);
+  std::mt19937 gen = std::mt19937(colors_seed);
   std::uniform_int_distribution<int> dis = std::uniform_int_distribution<int>(100, 255);
   for (size_t i = 0; i < classes.size(); i++) {
     colors_.push_back(cv::Scalar(dis(gen), dis(gen), dis(gen)));

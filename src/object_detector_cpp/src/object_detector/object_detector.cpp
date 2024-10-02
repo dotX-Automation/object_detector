@@ -165,6 +165,7 @@ void ObjectDetector::init_inference()
       "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
       "toothbrush"};
   }
+  int colors_seed = int(this->get_parameter("colors_seed").as_int());
 
   detector_ = Inference(
     model_path_,
@@ -173,7 +174,8 @@ void ObjectDetector::init_inference()
     &model_score_threshold_,
     &model_NMS_threshold_,
     classes_,
-    verbose_);
+    verbose_,
+    colors_seed);
 }
 
 /**
