@@ -200,7 +200,20 @@ void ObjectDetector::init_services()
       &ObjectDetector::enable_callback,
       this,
       std::placeholders::_1,
-      std::placeholders::_2));
+      std::placeholders::_2),
+    rmw_qos_profile_services_default,
+    services_cgroup_);
+}
+
+/**
+ * @brief Routine to initialize callback groups.
+ */
+void ObjectDetector::init_cgroups()
+{
+  sensors_cgroup_ = this->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
+  services_cgroup_ = this->create_callback_group(
+    rclcpp::CallbackGroupType::MutuallyExclusive);
 }
 
 } // namespace object_detector

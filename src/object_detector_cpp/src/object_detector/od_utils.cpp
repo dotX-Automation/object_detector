@@ -89,6 +89,8 @@ void ObjectDetector::activate_detector()
   }
 
   // Activate sensors
+  rclcpp::SubscriptionOptions sub_opts;
+  sub_opts.callback_group = sensors_cgroup_;
   for (auto & sensor : sensors_) {
     std::string base_topic_name = sensor->subscriber_base_topic_name;
     std::string transport = sensor->subscriber_transport;
@@ -117,7 +119,8 @@ void ObjectDetector::activate_detector()
         transport,
         best_effort_qos ?
         dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile(),
+        sub_opts);
 
       // Subscribe to camera_info topic
       sensor->camera_info_sub_sync = std::make_shared<message_filters::Subscriber<CameraInfo>>(
@@ -125,14 +128,16 @@ void ObjectDetector::activate_detector()
         camera_info_topic_name,
         best_effort_qos ?
         dua_qos::BestEffort::get_datum_qos().get_rmw_qos_profile() :
-        dua_qos::Reliable::get_datum_qos().get_rmw_qos_profile());
+        dua_qos::Reliable::get_datum_qos().get_rmw_qos_profile(),
+        sub_opts);
 
       // Subscribe to distances topic
       sensor->distances_sub_sync->subscribe(
         this,
         distances_topic,
         "raw",
-        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile(),
+        sub_opts);
 
       // Initialize synchronizer
       sensor->distances_sync = std::make_shared<message_filters::Synchronizer<distances_sync_policy>>(
@@ -154,7 +159,8 @@ void ObjectDetector::activate_detector()
         transport,
         best_effort_qos ?
         dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile());
+        dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile(),
+        sub_opts);
 
       // Subscribe to depth topic
       sensor->depth_map_sub_sync = std::make_shared<message_filters::Subscriber<PointCloud2>>(
@@ -162,7 +168,8 @@ void ObjectDetector::activate_detector()
         depth_topic,
         best_effort_qos ?
         dua_qos::BestEffort::get_scan_qos(depth).get_rmw_qos_profile() :
-        dua_qos::Reliable::get_scan_qos(depth).get_rmw_qos_profile());
+        dua_qos::Reliable::get_scan_qos(depth).get_rmw_qos_profile(),
+        sub_opts);
 
       // Initialize synchronizer
       sensor->depth_sync = std::make_shared<message_filters::Synchronizer<depth_sync_policy>>(
@@ -182,7 +189,8 @@ void ObjectDetector::activate_detector()
           transport,
           best_effort_qos ?
           dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
-          dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile()));
+          dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile(),
+          sub_opts));
     }
   }
 

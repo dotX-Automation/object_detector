@@ -37,7 +37,7 @@ using namespace dua_app_management;
 
 int main(int argc, char ** argv)
 {
-  ROS2AppManager<rclcpp::executors::SingleThreadedExecutor,
+  ROS2AppManager<rclcpp::executors::MultiThreadedExecutor,
     object_detector::ObjectDetector> app_manager(
     argc,
     argv,

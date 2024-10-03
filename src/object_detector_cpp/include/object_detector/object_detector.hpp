@@ -164,8 +164,13 @@ private:
   /* Node initialization routines. */
   void init_inference();
   void init_parameters();
+  void init_cgroups();
   void init_services();
   void init_subscriptions();
+
+  /* Callback groups. */
+  rclcpp::CallbackGroup::SharedPtr sensors_cgroup_;
+  rclcpp::CallbackGroup::SharedPtr services_cgroup_;
 
   /* Service servers. */
   rclcpp::Service<SetBool>::SharedPtr enable_server_;
